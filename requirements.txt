@@ -1,0 +1,53 @@
+# Install with: pip install -r requirements.txt
+# ---------------------------------------------------------------------------
+# This file lists all Python packages required to run Code v2.0:
+#   - GUI dashboard (ttkbootstrap)
+#   - Model backends (Ollama, HF Transformers, Dummy, API)
+#   - Dataset loaders (local, CSV, Hugging Face)
+#   - HTML report generator
+#   - Experiment orchestration
+# ---------------------------------------------------------------------------
+
+
+# ===============================
+# GUI / Desktop Application Layer
+# ===============================
+ttkbootstrap>=1.10.1      # Modern Tkinter UI framework for the Glacier dashboard
+
+
+# ===============================
+# Core Utilities
+# ===============================
+pyyaml>=6.0               # Loading/saving YAML config + presets
+requests>=2.31.0          # HTTP client used by APIModel + OllamaModel
+datasets>=2.18.0          # Hugging Face datasets loader (BigVul, CVEfixes, Vul4J)
+huggingface_hub>=0.23.0   # Auth + token handling (HfFolder)
+pandas>=2.2.0             # Required if toy/local CSV datasets expand later
+jinja2>=3.1.3             # HTML templating engine (evaluation/report.py)
+
+
+# ===========================================
+# Hugging Face Transformers (HFModel backend)
+# ===========================================
+transformers>=4.45.0      # Tokenizer + AutoModelForCausalLM
+torch>=2.2.0              # Deep learning backend for Transformer models
+accelerate>=0.31.0        # Device placement and optimized inference
+sentencepiece>=0.2.0      # Required for many tokenizer models (gemma, mistral, etc.)
+safetensors>=0.4.0        # Safe + fast model weights format
+
+
+# ===============================
+# Reporting / Numerical Utilities
+# ===============================
+tqdm>=4.66.0              # Optional progress bars (not required by GUI but often useful)
+colorama>=0.4.6           # Optional colored terminal output
+numpy>=1.26.0             # Needed for numerical stability + HF internals
+
+
+# ===============================
+# MISSING BUT REQUIRED PACKAGES
+# (These appear in your code but were not listed)
+# ===============================
+
+tk>=0.1.0                 # Ensures Tk bindings available for ttkbootstrap (some systems require it)
+python-dateutil>=2.8.2    # Used indirectly in some runner/report timestamp utilities

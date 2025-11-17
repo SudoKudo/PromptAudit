@@ -1,0 +1,175 @@
+# =========================================================
+# 🧠 Glacier v2.0 — AI Vulnerability Research Platform
+# Configuration File (Binary SAFE/VULNERABLE Classification)
+# Author: Steffen Camarato — University of Central Florida
+#
+# This file defines:
+#   - Default generation settings used by the runner / GUI
+#   - Available models (Ollama, HF, API)
+#   - Prompt strategies
+#   - Datasets
+#   - Report + CSV output locations
+# =========================================================
+
+# ---------------------------------------------------------
+# 🧪 Debug / Logging Flags
+# ---------------------------------------------------------
+debug_raw_outputs: false  # Set to true to log raw prompts and model outputs
+
+# ---------------------------------------------------------
+# ⚙️ Generation Configuration
+# These defaults are loaded at startup and then copied into
+# the runner. The GUI can override these values at runtime.
+# ---------------------------------------------------------
+generation:
+  # Controls randomness of the model’s output.
+  # Lower values (0.1–0.3) → more deterministic / stable.
+  temperature: 0.2
+
+  # Nucleus sampling: the model only samples from the top-p
+  # cumulative probability mass. 0.9 is a common default.
+  top_p: 0.9
+
+  # Top-k sampling: restricts sampling to the k most likely
+  # next tokens. 40 is a standard “safe” value.
+  top_k: 40
+
+  # Maximum number of new tokens the model is allowed to
+  # generate. This limits answer length.
+  max_new_tokens: 250
+
+  # Penalizes repeated tokens; > 1.0 pushes the model away
+  # from repeating itself. 1.0 = no penalty.
+  repetition_penalty: 1.0
+
+  # API-only option (ignored by most local backends):
+  # Penalizes frequent tokens to diversify output.
+  frequency_penalty: 0.0
+
+  # API-only option (ignored by most local backends):
+  # Penalizes tokens already present in the context.
+  presence_penalty: 0.0
+
+  # Beam search width for HF models. 1 = no beam search
+  # (pure sampling / greedy).
+  num_beams: 1
+
+  # Number of self-consistency samples (used by the
+  # self_consistency prompt strategy). The strategy decides
+  # how to aggregate these.
+  sc_samples: 5
+
+  # Seed for reproducibility. Not all backends respect this,
+  # but when honored it helps make runs repeatable.
+  seed: 42
+
+  # Stop sequences passed to the backend by default.
+  # NOTE:
+  #   - The current runner logic may override this for some
+  #     SAFE/VULNERABLE pipelines (e.g., using "\n").
+  #   - Leaving this empty here keeps the YAML neutral and
+  #     backend-agnostic.
+  stop_sequences: ["\n"]
+
+  # Optional experiment label shown in logs / report footer.
+  experiment_name: "Default Run"
+
+  # Optional free-form notes for this configuration.
+  experiment_notes: ""
+
+# ---------------------------------------------------------
+# 💾 Output Configuration
+# Controls where experiment results are written on disk.
+# Paths are relative to the project root.
+# ---------------------------------------------------------
+output:
+  # Master metrics CSV (one row per dataset×model×prompt).
+  results_csv: results/csv/metrics.csv
+
+  # Interactive HTML report (charts, tables, filters).
+  report_html: results/report.html
+
+# ---------------------------------------------------------
+# 🧱 Model Definitions
+# Each entry describes one model that can be selected in
+# the GUI. “name” must match the actual Ollama tag or
+# HF model id, and “backend” controls which loader is used.
+# ---------------------------------------------------------
+models:
+  # Local Ollama models
+  - name: mistral:latest
+    backend: ollama
+
+  - name: gemma:7b
+    backend: ollama
+
+  - name: codellama:7b-instruct
+    backend: ollama
+
+  # Use the instruct variant to align with system-style prompts.
+  - name: falcon:7b-instruct
+    backend: ollama
+
+  - name: deepseek-coder:6.7b-instruct
+    backend: ollama
+
+  # Hugging Face (transformers) models
+  - name: gemma-7b
+    backend: hf
+
+  - name: mistralai/Mistral-7B-Instruct-v0.2
+    backend: hf
+
+# ---------------------------------------------------------
+# 💬 Prompt Strategies
+# Each string here maps to a prompt implementation under
+# prompts/ (e.g., prompts/zero_shot.py, prompts/cot.py).
+# These show up as selectable strategies in the GUI.
+# ---------------------------------------------------------
+prompts:
+  - zero_shot        # Single-pass classification, no examples
+  - few_shot         # Uses small labeled examples in the prompt
+  - cot              # Chain-of-thought style reasoning
+  - adaptive_cot     # Chooses when to use CoT based on context
+  - self_consistency # Multiple sampled chains with voting
+
+# ---------------------------------------------------------
+# 💾 Datasets
+# Each dataset name corresponds to a loader in
+# code_datasets/dataset_loader.py (e.g., “toy”, “cvefixes”).
+# ---------------------------------------------------------
+datasets:
+  # Simple CSV-based toy dataset for debugging / smoke tests.
+  - name: toy
+    source: local
+    path: data/toy.csv
+
+  # Hugging Face–backed datasets (loaded by name in the loader).
+  - name: cvefixes
+    source: hf
+
+  - name: bigvul
+    source: hf
+
+  - name: vul4j
+    source: hf
+
+# ---------------------------------------------------------
+# 📊 Metrics
+# Controls which aggregate metrics are included in the
+# CSV and HTML reports. Under the hood, Metrics.to_dict()
+# must provide these keys.
+# ---------------------------------------------------------
+metrics:
+  include: ["Accuracy", "Precision", "Recall", "F1"]
+
+# ---------------------------------------------------------
+# 🌐 API Configuration (Optional)
+# Only used if an external API backend is wired up in
+# models/model_loader.py (e.g., OpenAI, other providers).
+# ---------------------------------------------------------
+api:
+  api_host: https://api.openai.com
+  # API key intentionally left blank; expected to be supplied
+  # via environment variable or secure secrets mechanism.
+  api_key: ""
