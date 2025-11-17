@@ -301,15 +301,17 @@ Camarato, S. "PromptAudit: A Prompt-Engineered Framework for AI-Driven Vulnerabi
 ```
 ---
 
-🧊 Built With:
-    🐍 Python 3.11+
-    🎨 ttkbootstrap (UI framework)
-    🤗 Transformers + Datasets
-    🧮 Ollama (local LLMs)
-    📊 Interactive HTML Reports
-    
+🧊 **Built With**
+
+- 🐍 Python 3.11+
+- 🎨 ttkbootstrap (UI framework)
+- 🤗 Transformers + Datasets
+- 🧮 Ollama (local LLMs)
+- 📊 Interactive HTML Reports
+
 ---
 
 
 © 2025 Steffen Camarato — All Rights Reserved.
+
 
