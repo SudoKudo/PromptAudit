@@ -160,16 +160,18 @@ python run_PromptAudit.py
 
 ---
 
-🖥️ Using the Interface:
-    Area                      Function
-    Experiment Info           Add experiment name and notes (for reports).
-    Models                    Choose installed Ollama models
-    Prompt Strategy           Choose the prompting method (Zero-Shot, Few-Shot, CoT, Adaptive CoT, Self-Consistency).
-    Dataset Selector          Pick datasets (Toy, CVEFixes, BigVul, Vul4J).
-    Generation Settings       Adjust temperature, max new tokens, top p, repetition penalty, etc.
-    Run Experiment            Starts evaluation → live progress updates.
-    Run Panel                 Progress, ETA, live logs (some features are not implemented yet)
-    Results Access            Open interactive HTML report
+🖥️ **Using the Interface**
+
+| Area                 | Function |
+|----------------------|----------|
+| Experiment Info      | Add experiment name and notes (for reports). |
+| Models               | Choose installed Ollama models. |
+| Prompt Strategy      | Choose the prompting method (Zero-Shot, Few-Shot, CoT, Adaptive CoT, Self-Consistency). |
+| Dataset Selector     | Pick datasets (Toy, CVEFixes, BigVul, Vul4J). |
+| Generation Settings  | Adjust temperature, max new tokens, top-p, repetition penalty, etc. |
+| Run Experiment       | Starts evaluation → live progress updates. |
+| Run Panel            | Progress, ETA, live logs (some features not implemented yet). |
+| Results Access       | Open interactive HTML report. |
 
 ---
 
@@ -310,3 +312,4 @@ Camarato, S. "PromptAudit: A Prompt-Engineered Framework for AI-Driven Vulnerabi
 
 
 © 2025 Steffen Camarato — All Rights Reserved.
+
