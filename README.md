@@ -57,8 +57,6 @@ PromptAudit automatically:
 **Figure 3 — Sample HTML Report Output**  
 ![Report Screenshot](docs/screenshots/report_sample.png)
 
-*(If running offline, screenshots will appear as placeholders.)*
-
 ---
 
 ## 🛠 System Requirements
@@ -309,5 +307,6 @@ Camarato, S. "PromptAudit: A Prompt-Engineered Framework for AI-Driven Vulnerabi
     📊 Interactive HTML Reports
     
 ---
+
 
 © 2025 Steffen Camarato — All Rights Reserved.
