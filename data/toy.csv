@@ -1,7 +1,7 @@
 id,language,code,label
 1,C,"char buf[8]; strcpy(buf, input);",VULNERABLE
 2,C,"char buf[256]; strncpy(buf, input, sizeof(buf)-1); buf[255] = '\0';",SAFE
-3,C,char buf[16]; gets(buf);,VULNERABLE
+3,C,"char buf[16]; gets(buf);",VULNERABLE
 4,C,"fgets(buf, sizeof(buf), stdin);",SAFE
 5,C,"char buf[16]; sprintf(buf, ""%s"", input);",VULNERABLE
 6,C,"char buf[16]; snprintf(buf, sizeof(buf), ""%s"", input);",SAFE
@@ -11,10 +11,10 @@ id,language,code,label
 10,C,"char cmd[64]; strncpy(cmd, ""ls"", sizeof(cmd)-1); cmd[sizeof(cmd)-1] = '\0'; system(cmd);",SAFE
 11,C,"char query[128]; sprintf(query, ""SELECT * FROM t WHERE id=%s"", user);",VULNERABLE
 12,C,"char query[128]; snprintf(query, sizeof(query), ""SELECT * FROM t WHERE id=?"");",SAFE
-13,C,memcpy(buf, input, 1024);,VULNERABLE
-14,C,memcpy(buf, input, min(input_len, sizeof(buf));,SAFE
+13,C,"memcpy(buf, input, 1024);",VULNERABLE
+14,C,"memcpy(buf, input, min(input_len, sizeof(buf));",SAFE
 15,C,"strcpy(password, ""secret123"");",VULNERABLE
-16,C,load_password_from_env(password, sizeof(password));,SAFE
+16,C,"load_password_from_env(password, sizeof(password));",SAFE
 17,C,"if (user_is_admin) { system(user_input); }",VULNERABLE
 18,C,"if (user_is_admin && is_whitelisted(user_input)) { system(user_input); }",SAFE
 19,C,"char logbuf[32]; sprintf(logbuf, user_input);",VULNERABLE
@@ -26,7 +26,7 @@ id,language,code,label
 25,C,"char token[8]; strcpy(token, getenv(""UNTRUSTED""));",VULNERABLE
 26,C++,"char buf[8]; std::strcpy(buf, user_input);",VULNERABLE
 27,C++,"std::string s = user_input; auto t = s.substr(0, 7);",SAFE
-28,C++,char name[16]; gets(name);,VULNERABLE
+28,C++,"char name[16]; gets(name);",VULNERABLE
 29,C++,"std::string name; std::getline(std::cin, name);",SAFE
 30,C++,"char path[32]; std::sprintf(path, ""%s"", user_input);",VULNERABLE
 31,C++,"std::string path = sanitize(user_input); std::filesystem::path p(path);",SAFE
@@ -59,7 +59,7 @@ id,language,code,label
 58,Java,"char[] pwd = secretStore.load(""db.password"");",SAFE
 59,Java,"Cookie c = new Cookie(""session"", request.getParameter(""id""));",VULNERABLE
 60,Java,"Cookie c = new Cookie(""session"", generateSessionId());",SAFE
-61,Java,Files.write(Paths.get(userPath), data);,VULNERABLE
+61,Java,"Files.write(Paths.get(userPath), data);",VULNERABLE
 62,Java,"if (isSafePath(userPath)) { Files.write(Paths.get(userPath), data); }",SAFE
 63,Java,"SSLContext ctx = SSLContext.getInstance(""TLS""); ctx.init(null, trustAll(), null);",VULNERABLE
 64,Java,"SSLContext ctx = SSLContext.getInstance(""TLS""); ctx.init(km, tm, null);",SAFE
@@ -80,8 +80,8 @@ id,language,code,label
 79,Python,ast.literal_eval(user_input),SAFE
 80,Python,os.system(request.args['cmd']),VULNERABLE
 81,Python,"subprocess.run(['ls', '-la'], check=True)",SAFE
-82,Python,subprocess.run(user_input, shell=True),VULNERABLE
-83,Python,subprocess.run(shlex.split(user_input), shell=False),SAFE
+82,Python,"subprocess.run(user_input, shell=True)",VULNERABLE
+83,Python,"subprocess.run(shlex.split(user_input), shell=False)",SAFE
 84,Python,"query = 'SELECT * FROM users WHERE name=' + user",VULNERABLE
 85,Python,"cursor.execute('SELECT * FROM users WHERE name=%s', (user,))",SAFE
 86,Python,open(request.args['path']).read(),VULNERABLE
@@ -97,5 +97,5 @@ id,language,code,label
 96,Python,pickle.loads(request.data),VULNERABLE
 97,Python,"pickle.loads(request.data, fix_imports=False, encoding='bytes')",VULNERABLE
 98,Python,json.loads(request.data),SAFE
-99,Python,hmac.compare_digest(expected, provided),SAFE
-100,Python,requests.get(user_url, verify=False),VULNERABLE
+99,Python,"hmac.compare_digest(expected, provided)",SAFE
+100,Python,"requests.get(user_url, verify=False)",VULNERABLE

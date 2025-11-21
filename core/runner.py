@@ -1,4 +1,4 @@
-# core/runner.py — Glacier v2.0 (Final, Unified Prompts + Self-Consistency)
+# core/runner.py — PromptAudit v2.0 
 # Author: Steffen Camarato — University of Central Florida
 # Purpose: Orchestrates the full experiment lifecycle with self-consistency,
 # adaptive prompt strategies, and graceful stop behavior.
@@ -13,6 +13,7 @@ import os
 import csv
 import time
 import traceback
+from evaluation.label_parser import parse_verdict  # Centralized SAFE/VULNERABLE/UNKNOWN parser
 from evaluation.metrics import Metrics as MetricTracker   # Tracks confusion-matrix counts and derived metrics
 from evaluation.report import HtmlReport                  # Renders the interactive HTML report
 from code_datasets.dataset_loader import load_dataset     # Central dataset loader (local files + HF-based datasets)
@@ -67,7 +68,7 @@ class ExperimentRunner:
 
         # When True, log raw prompts/outputs for early samples.
         # This reads the top-level `debug_raw_outputs` from config.yaml.
-        self.debug_raw_outputs = bool(self.cfg.get("debug_raw_outputs", False))
+        self.debug_raw_outputs = bool(self.cfg.get("debug_raw_outputs", True))
 
     # -----------------------------------------------------------------
     def run_all(self, selected_datasets, selected_models, selected_prompts):
@@ -194,6 +195,11 @@ class ExperimentRunner:
 
         # Load the prompt strategy object (zero_shot, few_shot, cot, etc.).
         prompt_obj = load_prompt(prompt_name)
+        
+        # Some strategies (e.g., SelfConsistency) return a FINAL label instead
+        # of a prompt string. We detect this via an optional flag.
+        returns_label = getattr(prompt_obj, "returns_label", False)
+
         # MetricTracker accumulates confusion matrix and derived metrics over the dataset.
         m = MetricTracker()
         # Per-sample predictions are stored for detailed CSV export and error analysis.
@@ -232,7 +238,12 @@ class ExperimentRunner:
 
                 # For SAFE/VULNERABLE experiments, append a final instruction that
                 # constrains the model to output a single word as the visible label.
-                if isinstance(result, str) and force_label_stop:
+                #
+                # IMPORTANT:
+                #   If a strategy returns_label=True (e.g., SelfConsistency),
+                #   its output is already a FINAL verdict ("safe"/"vulnerable"/"unknown"),
+                #   not a prompt. In that case we must NOT send it back to the model.
+                if isinstance(result, str) and force_label_stop and not returns_label:
                     result = result.rstrip() + (
                         "\n\nTASK: Classify the code's security.\n"
                         "On the FIRST LINE ONLY, output exactly one of these words: SAFE or VULNERABLE.\n"
@@ -242,7 +253,6 @@ class ExperimentRunner:
 
                     # If debug mode is enabled, log what is being sent into the model.
                     if self.debug_raw_outputs and i == 1:
-                        # Only log a prefix to avoid flooding logs.
                         self.progress(
                             "[DEBUG] Prompt sent to model.generate(...) "
                             f"(model={model_name}, sample={i}/{total}, "
@@ -254,121 +264,61 @@ class ExperimentRunner:
 
                     # If debug is enabled, also log the raw model output for early samples.
                     if self.debug_raw_outputs and i <= 3:
-                        # repr() shows hidden characters like "\n" so you can see if it's really empty, etc.
                         self.progress(
                             "[DEBUG] Raw output from model.generate(...) "
                             f"(model={model_name}, sample={i}/{total}, type={type(pred)}): {repr(pred)[:200]}"
                         )
-                        # Pretty view: how it would normally look as text
                         self.progress(
-                            f"[DEBUG] Raw output pretty view (model={model_name}, sample={i}/{total}):\n"
+                            f"[DEBUG] Raw output (model={model_name}, sample={i}/{total}):\n"
                             f"{str(pred)}\n"
                             "-------------------------------------------------------------"
                         )
 
-
                 else:
-                    # Legacy path: if the strategy returns a plain prompt string
-                    # without embedded SAFE/VULNERABLE logic, call generate.
-                    if isinstance(result, str) and not any(
-                        x in result.lower() for x in ["safe", "vulnerable"]
-                    ):
-                        if self.debug_raw_outputs and i == 1:
-                            self.progress(
-                                "[DEBUG] Legacy prompt sent to model.generate(...) "
-                                f"(model={model_name}, sample={i}/{total}, "
-                                f"type={type(result)}): {repr(result[:300])}"
-                            )
+                    # Either:
+                    #   - The strategy already performed generation and returned raw output, OR
+                    #   - The strategy returned a FINAL label (returns_label=True).
+                    pred = result
 
-                        pred = model.generate(result)
-
-                        if self.debug_raw_outputs and i <= 3:
-                            self.progress(
-                                "[DEBUG] Raw output from model.generate(...) "
-                                f"(model={model_name}, sample={i}/{total}, type={type(pred)}): {repr(pred)[:200]}"
-                            )
-                            self.progress(
-                                f"[DEBUG] Raw output pretty view (model={model_name}, sample={i}/{total}):\n"
-                                f"{str(pred)}\n"
-                                "-------------------------------------------------------------"
-                            )
-                    else:
-                        # If the strategy performed the generation itself, use that output directly.
-                        pred = result
-
-                        if self.debug_raw_outputs and i <= 3:
-                            self.progress(
-                                "[DEBUG] Raw output from prompt strategy "
-                                f"(model={model_name}, sample={i}/{total}, type={type(pred)}): {repr(pred)[:200]}"
-                            )
-                            self.progress(
-                                f"[DEBUG] Raw output pretty view (strategy) (model={model_name}, sample={i}/{total}):\n"
-                                f"{str(pred)}\n"
-                                "-------------------------------------------------------------"
-                            )
-
+                    if self.debug_raw_outputs and i <= 3:
+                        self.progress(
+                            "[DEBUG] Raw output from prompt strategy "
+                            f"(model={model_name}, sample={i}/{total}, type={type(pred)}): {repr(pred)[:200]}"
+                        )
+                        self.progress(
+                            f"[DEBUG] Raw output (strategy) (model={model_name}, sample={i}/{total}):\n"
+                            f"{str(pred)}\n"
+                            "-------------------------------------------------------------"
+                        )
 
             except Exception as e:
                 # If prompting or generation fails for this sample, log and continue.
                 self.progress(f"❌ Prompt or generation failed at sample {i}: {e}")
                 continue
 
-
             if not pred:
-                # If the model returns an empty response, log a warning and skip.
-                self.progress(f"⚠️ Empty response for sample {i}")
-                continue
+                # Model returned an empty or falsy response.
+                # Log it, but still feed it into the centralized parser,
+                # which will convert it into an "unknown" verdict.
+                self.progress(f"⚠️ Empty response for sample {i}, will treat as UNKNOWN verdict")
+                # Do not `continue` here, let parse_verdict handle it.
 
             # -------------------------------------------------------------
-            # STRICT PARSING LOGIC (SAFE/VULNERABLE first token)
+            # LABEL PARSING (delegated to centralized parser)
             # -------------------------------------------------------------
-            text = str(pred).strip()
-            # Split into non-empty lines for line-wise inspection.
-            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-
-            if not lines:
-                # Model returned only whitespace or nothing at all.
-                self.progress(
-                    f"⚠️ Unrecognized response from {model_name} "
-                    f"(no non-empty lines): {text[:120]!r}"
-                )
-                continue
-
-            # Consider ONLY the first non-empty line as the canonical label line.
-            first_line = lines[0]
-            parts = first_line.split()
-
-            if not parts:
-                # First line is somehow empty after stripping → treat as invalid.
-                self.progress(
-                    f"⚠️ Unrecognized response from {model_name} "
-                    f"(empty first line): {text[:120]!r}"
-                )
-                continue
-
-            # Normalize the first token on the first line: keep only letters,
-            # lowercase, so variants like "SAFE," or "Safe" still match.
-            token = "".join(ch for ch in parts[0] if ch.isalpha()).lower()
-
-            if token not in ("safe", "vulnerable"):
-                # Model did not follow the strict label contract.
-                self.progress(
-                    f"⚠️ Unrecognized response from {model_name} "
-                    f"(first token is not SAFE/VULNERABLE): {text[:120]!r}"
-                )
-                continue
-
-            # At this point, a valid strict label has been obtained.
-            pred_label = token
-
+            pred_label = parse_verdict(pred, model_name=model_name)
 
             # -------------------------------------------------------------
             # Metrics update
             # -------------------------------------------------------------
-            # Feed (gold, predicted) labels into the metric tracker.
             m.add(gold, pred_label)
-            # Store per-sample prediction for later inspection and export.
-            preds.append({"id": i, "gold": gold, "pred": pred_label})
+            preds.append(
+                {
+                    "id": i,          # dataset sample index
+                    "gold": gold,    # ground truth label from the dataset
+                    "pred": pred_label,  # normalized model verdict
+                }
+            )
 
             # Periodically emit progress updates so the user can track long runs.
             if i % 5 == 0 or i == total:
@@ -397,8 +347,8 @@ class ExperimentRunner:
             **metrics,
             "predictions": preds,
             "params": gen_cfg,             # Generation configuration used for this run (for reproducibility)
-            "label_protocol": label_protocol,  # Currently "strict" for all runs
-            "valid_samples": len(preds),       # How many samples produced a valid SAFE/VULNERABLE label
+            "label_protocol": label_protocol,  # Currently "strict" first-line with structured and lexical fallbacks
+            "valid_samples": sum(1 for p in preds if p["pred"] in ("safe", "vulnerable")),  # How many samples produced a valid SAFE/VULNERABLE label
             "total_samples": total,            # Total dataset size attempted
 
             # A sorted list of the *distinct* predicted labels the model actually produced

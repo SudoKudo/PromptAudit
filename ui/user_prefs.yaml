@@ -1,7 +1,7 @@
 datasets:
 - toy
-experiment_name: Prompt Engineering Experiment
-experiment_notes: Computer Security Course Project
+experiment_name: Computer Security Project
+experiment_notes: Full Expirement Run
 frequency_penalty: 0.0
 max_new_tokens: 250
 models:
@@ -9,11 +9,15 @@ models:
 - gemma:7b
 - codellama:7b-instruct
 - deepseek-coder:6.7b-instruct
-- falcon:7b-instruct
+- falcon:7b
 num_beams: 1
 presence_penalty: 0.0
 prompts:
 - zero_shot
+- few_shot
+- cot
+- adaptive_cot
+- self_consistency
 repetition_penalty: 1.0
 sc_samples: 5
 seed: 42

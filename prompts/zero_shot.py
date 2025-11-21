@@ -1,101 +1,64 @@
-# prompts/zero_shot.py — Zero-Shot classification strategy for Code v2.0
+# prompts/zero_shot.py — PromptAudit v2.0: Zero-Shot classification strategy
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
 # Purpose:
-#   This is the simplest strategy: a single, clean zero-shot prompt that asks
-#   the model to classify code as SAFE or VULNERABLE with no examples.
+#   ZeroShot is the simplest prompt strategy. It builds a single,
+#   clean instruction prompt for classifying a code snippet from a
+#   security perspective.
 #
-# Design (aligned with the Code v2.0 ecosystem):
-#   - Exactly ONE prompt is sent to the model per code snippet.
-#   - Output is constrained to a single final label: SAFE or VULNERABLE.
-#   - The label is parsed from the last non-empty line.
-#   - We call model.generate(prompt) directly so this prompt is not wrapped
-#     by BasePrompt.template (same pattern as CoT and FewShot).
-
+# PromptAudit v2.0 design (Option A):
+#   - This strategy DOES NOT call model.generate() itself.
+#   - It only builds and returns a prompt string.
+#   - The ExperimentRunner:
+#       * Calls apply(model, code, gen_cfg) → gets the prompt string.
+#       * Appends the strict SAFE/VULNERABLE "TASK" block.
+#       * Calls model.generate(full_prompt).
+#       * Sends the raw model output to parse_verdict().
+#
+#   This keeps ZeroShot simple and makes the runner the single place
+#   that talks to the model backend for this strategy.
 
 from .base_prompt import BasePrompt
 
 
 class ZeroShot(BasePrompt):
-    """
-    Zero-shot classification prompt strategy.
-
-    Behavior:
-        - Assigns the model a security auditing role.
-        - Asks it to examine the code and classify it strictly as SAFE or VULNERABLE.
-        - Requires the answer to be exactly one word on the final line.
-        - Parses that final word and returns it as the classification.
-
-    This implementation:
-        - Uses one canonical zero-shot template (no extra variants).
-        - Makes a single model call per code snippet.
-    """
+    """Zero-shot classification prompt strategy."""
 
     # Logical name used in configs and reports.
     name = "zero_shot"
 
-    # Single canonical zero-shot template:
-    #   - Clear role: "secure code auditor".
-    #   - Clear task: classify strictly as SAFE or VULNERABLE.
-    #   - Clear output format: exactly one word on its own final line.
+    # Single zero-shot template:
+    #   - Assigns the model a security auditing role.
+    #   - Asks it to examine the code and consider security implications.
+    #   - DOES NOT specify the exact SAFE/VULNERABLE output format; the runner
+    #     will add the strict first-line instructions.
     template = (
-        "You are a secure code auditor. Examine the code and classify it strictly as SAFE or VULNERABLE.\n\n"
+        "You are a secure code auditor. Examine the following code and determine "
+        "whether it is secure or vulnerable to potential exploits.\n"
+        "Briefly consider issues such as buffer overflows, injections, improper "
+        "validation, and other common weaknesses.\n\n"
         "{code}\n\n"
-        "Respond with exactly one word on its own final line: SAFE or VULNERABLE."
     )
 
     def apply(self, model, code, gen_cfg):
         """
-        Apply the zero-shot strategy to a given code snippet.
+        Build and return the zero-shot prompt string.
 
         Args:
             model:
-                Model backend that must implement `generate(prompt: str) -> str`.
+                Backend model instance (not used directly here, but kept in the
+                signature for interface consistency with other strategies).
             code (str):
-                The code snippet to classify.
+                The code snippet to be analyzed.
             gen_cfg (dict):
-                Generation configuration (temperature, stop sequences, etc.).
-                Included for interface consistency with other strategies, but
-                this method does not directly modify behavior based on it.
-                The model backend typically uses its own stored gen_cfg.
+                Generation configuration (temperature, etc.). Not used here,
+                since this strategy does not call model.generate() itself.
 
         Returns:
             str:
-                - "SAFE" or "VULNERABLE" if a valid label is parsed.
-                - "UNKNOWN" if the response does not contain a clear label.
-
-        Process:
-            1) Format the zero-shot template with the code snippet.
-            2) Call model.generate(prompt) once.
-            3) Strip and split the response into non-empty lines.
-            4) Take the last non-empty line and extract its first token.
-            5) Normalize that token and check if it is SAFE or VULNERABLE.
-            6) Return the label, or "UNKNOWN" if parsing fails.
+                A fully formatted prompt string. The ExperimentRunner will:
+                    - Append the strict SAFE/VULNERABLE task instructions.
+                    - Call model.generate(full_prompt).
+                    - Feed the raw output to parse_verdict().
         """
-
-        # 1) Build the full zero-shot prompt.
-        prompt = self.template.format(code=code)
-
-        # 2) Send the prompt directly to the model (no BasePrompt wrapping).
-        result = model.generate(prompt)
-        if not result:
-            # If the model returns nothing, we cannot determine a label.
-            return "UNKNOWN"
-
-        # 3) Normalize the model output: remove leading/trailing whitespace,
-        #    and filter out blank lines.
-        text = result.strip()
-        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-
-        # 4) Take the last non-empty line; the answer should be here.
-        last = lines[-1] if lines else ""
-
-        # 5) Extract the first token, strip punctuation, and normalize case.
-        first = (last.split()[0] if last else "").strip(":，。.").upper()
-
-        # 6) Return the label if it is valid; otherwise return UNKNOWN.
-        if first in ("SAFE", "VULNERABLE"):
-            return first
-
-        # Fallback if the model response doesn't match the expected pattern.
-        return "UNKNOWN"
+        return self.template.format(code=code)

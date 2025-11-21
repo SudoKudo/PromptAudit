@@ -1,114 +1,70 @@
-# prompts/adaptive_cot.py — Glacier v2.0
+# prompts/adaptive_cot.py — PromptAudit v2.0: Adaptive Chain-of-Thought (CoT) classification strategy
 # Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Purpose:
-#   Adaptive Chain-of-Thought (CoT) strategy:
-#     - Phase 1: Try fast, direct SAFE/VULNERABLE classification prompts.
-#     - Phase 2: If the result is unclear, fall back to reasoning-style CoT.
+#   Adaptive Chain-of-Thought (CoT) strategy that encourages the model to:
+#     1) Try to make a quick decision if it is confident.
+#     2) Otherwise, reason step by step before deciding.
 #
-#   This class:
-#     - May call the model multiple times per sample (across templates + phases).
-#     - Returns a single final label: SAFE, VULNERABLE, or UNKNOWN.
+# PromptAudit v2.0 design (Option A):
+#   - This strategy does NOT call model.generate() itself.
+#   - It only builds and returns a prompt string.
+#   - The ExperimentRunner:
+#       * Calls apply(model, code, gen_cfg) to get the adaptive CoT prompt.
+#       * Appends the strict SAFE or VULNERABLE "TASK" block.
+#       * Calls model.generate(full_prompt).
+#       * Sends the raw model output to parse_verdict().
 #
-#   With the BasePrompt.raw_prompt fix:
-#     - We now send the CoT prompts *directly* to the model (no base template
-#       wrapping), via raw_prompt=True.
-
+#   This keeps the adaptive reasoning behavior inside the prompt text but
+#   centralizes all label parsing logic in evaluation.label_parser.
 
 from .base_prompt import BasePrompt
 
 
 class AdaptiveCoT(BasePrompt):
-    """
-    Adaptive Chain-of-Thought strategy.
+    """Adaptive Chain-of-Thought prompt strategy."""
 
-    High-level behavior:
-      - Fast path:
-          * Use short, direct classification prompts.
-          * If the last non-empty line cleanly yields SAFE or VULNERABLE, return it.
-      - Slow path:
-          * If fast path is uncertain, use CoT-style prompts that encourage reasoning.
-          * Still require the final line to be SAFE or VULNERABLE.
-      - If neither phase yields a clear label, return UNKNOWN.
-    """
-
-    # Logical name for this strategy (used in configs / reporting).
+    # Logical name for this strategy (used in configs and reporting).
     name = "adaptive_cot"
 
-    # Phase 1: Direct templates (fast, minimal)
-    direct_templates = [
-        # Template 1 — explicit role + one-word output constraint
-        "You are a security auditor. Classify the following code as SAFE or VULNERABLE. "
-        "Respond with only one word — SAFE or VULNERABLE.\n\nCode:\n{code}\n\nAnswer:",
-
-        # Template 2 — variant wording, same constraints
-        "Determine if the code is SAFE or VULNERABLE. Do not explain. Respond with one word only.\n\n{code}\n\nLabel:"
-    ]
-
-    # Phase 2: Reasoning templates (slower CoT)
-    reasoning_templates = [
-        # Template 1 — step-by-step reasoning, then final label
-        "You are a senior secure code auditor. Analyze the code step-by-step. "
-        "After reasoning, on the last line, write only SAFE or VULNERABLE.\n\nCode:\n{code}\n\nReasoning:\n1) ",
-
-        # Template 2 — similar concept, slightly different wording
-        "You are an expert in secure software analysis. Think carefully, reason concisely, "
-        "then end your response with exactly one word: SAFE or VULNERABLE.\n\n{code}\n\nThoughts:\n1) "
-    ]
+    # Single adaptive CoT template:
+    #   - Tells the model to decide quickly if possible.
+    #   - If not confident, it should think step by step about vulnerabilities.
+    #   - The exact SAFE or VULNERABLE output format is not defined here;
+    #     the runner will append the strict labeling instructions.
+    template = (
+        "You are a secure code auditor. Your goal is to determine whether the "
+        "following code is SAFE or VULNERABLE.\n\n"
+        "1) First, quickly consider whether the code appears safe or unsafe.\n"
+        "2) If you are not confident, reason step by step about potential "
+        "vulnerabilities such as buffer overflows, injections, improper "
+        "validation, race conditions, and other common issues.\n"
+        "3) After your reasoning, you will receive separate instructions on how "
+        "to present the final classification.\n\n"
+        "Code:\n{code}\n\n"
+        "Begin your analysis:\n1) "
+    )
 
     def apply(self, model, code, gen_cfg):
         """
-        Apply the adaptive CoT strategy to a given code snippet.
+        Build and return the adaptive CoT prompt string.
 
         Args:
             model:
-                Model backend that implements `generate(prompt: str) -> str`.
+                Backend model instance (not used directly here, but included
+                for interface consistency with other strategies).
             code (str):
-                Code snippet to analyze.
+                The code snippet to analyze.
             gen_cfg (dict):
-                Generation configuration dict (temperature, stop sequences, etc.).
-                This method does not directly inspect gen_cfg, but keeps it for
-                interface consistency with other strategies.
+                Generation configuration (temperature, top_p, etc.). Not used
+                here, since this strategy does not call model.generate() itself.
 
         Returns:
             str:
-                - "SAFE" or "VULNERABLE" if a clear label is extracted from any phase.
-                - "UNKNOWN" if all attempts fail.
+                A fully formatted adaptive CoT prompt string. The
+                ExperimentRunner will:
+                    - Append the strict SAFE or VULNERABLE task instructions,
+                    - Call model.generate(full_prompt),
+                    - Feed the raw output to parse_verdict().
         """
-
-        # --- Phase 1: quick classification (no explicit reasoning in output)
-        for tpl in self.direct_templates:
-            prompt = tpl.format(code=code)
-
-            # Send the fully-formed prompt directly, without wrapping in BasePrompt.template.
-            result = super().apply(model, prompt, gen_cfg, raw_prompt=True)
-            if not result:
-                continue
-
-            text = result.strip()
-            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-            last = lines[-1] if lines else ""
-            first = (last.split()[0] if last else "").strip(":，。.").upper()
-
-            if first in ("SAFE", "VULNERABLE"):
-                return first
-
-        # --- Phase 2: slower reasoning if first pass was uncertain
-        for tpl in self.reasoning_templates:
-            prompt = tpl.format(code=code)
-
-            # Again, send the CoT prompt as-is via raw_prompt=True.
-            result = super().apply(model, prompt, gen_cfg, raw_prompt=True)
-            if not result:
-                continue
-
-            text = result.strip()
-            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-            last = lines[-1] if lines else ""
-            first = (last.split()[0] if last else "").strip(":，。.").upper()
-
-            if first in ("SAFE", "VULNERABLE"):
-                return first
-
-        # If neither fast nor slow path produced a valid label, return UNKNOWN.
-        return "UNKNOWN"
+        return self.template.format(code=code)

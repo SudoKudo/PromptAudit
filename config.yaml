@@ -1,5 +1,5 @@
 # =========================================================
-# 🧠 Glacier v2.0 — AI Vulnerability Research Platform
+# 🧠 PromptAudit v2.0 — AI Vulnerability Research Platform
 # Configuration File (Binary SAFE/VULNERABLE Classification)
 # Author: Steffen Camarato — University of Central Florida
 #
@@ -14,7 +14,7 @@
 # ---------------------------------------------------------
 # 🧪 Debug / Logging Flags
 # ---------------------------------------------------------
-debug_raw_outputs: false  # Set to true to log raw prompts and model outputs
+debug_raw_outputs: true  # Set to true to log raw prompts and model outputs
 
 # ---------------------------------------------------------
 # ⚙️ Generation Configuration
@@ -69,7 +69,7 @@ generation:
   #     SAFE/VULNERABLE pipelines (e.g., using "\n").
   #   - Leaving this empty here keeps the YAML neutral and
   #     backend-agnostic.
-  stop_sequences: ["\n"]
+  stop_sequences: []
 
   # Optional experiment label shown in logs / report footer.
   experiment_name: "Default Run"

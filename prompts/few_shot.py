@@ -1,20 +1,21 @@
-# prompts/few_shot.py — Few-Shot classification strategy for Code v2.0
+# prompts/few_shot.py — PromptAudit v2.0: Few-Shot classification strategy
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
 # Purpose:
 #   This prompt strategy gives the model a couple of labeled examples first,
-#   then asks it to classify a new code sample as SAFE or VULNERABLE.
+#   then asks it to analyze a new code sample from a security perspective.
 #
-#   Design choices (aligned with the whole Code v2.0 ecosystem):
-#     - Exactly ONE prompt is sent per sample (no multi-template fallback here).
-#     - Output is constrained to a single final label: SAFE or VULNERABLE.
-#     - The final label is parsed from the last non-empty line.
-#     - We call model.generate(prompt) directly to avoid wrapping this prompt
-#       inside BasePrompt.template (same fix we applied to CoT).
+# PromptAudit v2.0 design (Option A):
+#   - This strategy DOES NOT call model.generate() itself.
+#   - It only builds and returns a prompt string.
+#   - The ExperimentRunner:
+#       * Calls apply(model, code, gen_cfg) → gets the prompt string.
+#       * Appends the strict SAFE/VULNERABLE "TASK" block.
+#       * Calls model.generate(full_prompt).
+#       * Sends the raw model output to parse_verdict().
 #
-#   The examples are deliberately simple and C-style to keep the few-shot signal
-#   clear: one obviously unsafe pattern, one obviously safer alternative.
-
+#   This keeps label semantics centralized and ensures consistent behavior
+#   across ZeroShot, FewShot, CoT, AdaptiveCoT, and SelfConsistency.
 
 from .base_prompt import BasePrompt
 
@@ -40,15 +41,15 @@ class FewShot(BasePrompt):
 
     Behavior:
         - Provides two labeled examples (one VULNERABLE, one SAFE).
-        - Then presents the new code snippet to classify.
-        - Instructs the model to respond with exactly one word on the final line:
-          SAFE or VULNERABLE.
-        - Parses that final label and returns it as the result.
+        - Then presents the new code snippet to be audited.
+        - Lets the model reason about the code and produce an output.
+        - Returns ONLY the prompt string; the runner handles generation and
+          label parsing.
 
-    This implementation:
-        - Uses a single canonical few-shot template (no redundant variants).
-        - Makes exactly one model call per sample.
-        - Keeps the interface consistent with other strategies (CoT, adaptive, etc.).
+    The runner will:
+        - Append a strict "FIRST LINE ONLY: SAFE or VULNERABLE" instruction.
+        - Call model.generate(full_prompt).
+        - Pass the raw model output into parse_verdict().
     """
 
     # Logical name for this strategy (used in configs and reporting).
@@ -56,64 +57,39 @@ class FewShot(BasePrompt):
 
     # Single canonical few-shot template:
     #   - Shows EXAMPLES with labels.
-    #   - Then asks the model to classify the new code.
-    #   - Enforces a strict one-word label on the final line.
+    #   - Then asks the model to analyze the new code.
+    #   - Output formatting is NOT constrained here; the runner adds that.
     template = (
-        "Use the examples as prior knowledge. Classify the following code strictly as SAFE or VULNERABLE.\n\n"
+        "Use the examples below as prior knowledge for classifying code security.\n"
+        "First, review the examples and their labels. Then analyze the new code snippet.\n\n"
         f"{EXAMPLES}\n"
-        "Now analyze:\n{code}\n\n"
-        "Respond with exactly one word on its own final line: SAFE or VULNERABLE."
+        "Now analyze this code from a security perspective:\n\n"
+        "{code}\n\n"
     )
 
     def apply(self, model, code, gen_cfg):
         """
-        Apply the few-shot strategy to a given code snippet.
+        Build and return the few-shot prompt string.
 
         Args:
             model:
-                Model object that must implement `generate(prompt: str) -> str`.
+                Model object (not used directly here, but kept in the signature
+                for consistency with other strategies).
             code (str):
                 The code snippet to classify.
             gen_cfg (dict):
                 Generation configuration (temperature, stop sequences, etc.).
-                It is accepted for consistency with other strategies, but this
-                method does not directly modify behavior based on gen_cfg.
-                The underlying model backend uses its own stored gen_cfg.
+                Not used here because this strategy does not call
+                model.generate() itself.
 
         Returns:
             str:
-                - "SAFE" or "VULNERABLE" if a valid label is parsed from the model output.
-                - "UNKNOWN" if the response does not contain a clear SAFE/VULNERABLE label.
-
-        Process:
-            1) Format the few-shot template with the new code snippet.
-            2) Call model.generate(prompt) once.
-            3) Strip and split the response into non-empty lines.
-            4) Examine the last non-empty line and take its first token.
-            5) Normalize that token and return it if it's SAFE or VULNERABLE.
-            6) Otherwise, return "UNKNOWN".
+                A fully formatted prompt string containing:
+                    - The labeled examples, and
+                    - The target code snippet to analyze.
+                The ExperimentRunner will:
+                    - Append SAFE/VULNERABLE task instructions,
+                    - Call model.generate(full_prompt),
+                    - Feed the raw output into parse_verdict().
         """
-
-        # 1) Build the full few-shot prompt containing examples + the new code.
-        prompt = self.template.format(code=code)
-
-        # 2) Call the model directly with the constructed prompt.
-        result = model.generate(prompt)
-        if not result:
-            return "UNKNOWN"
-
-        # 3) Normalize the model output: trim and remove empty lines.
-        text = result.strip()
-        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-
-        # 4) Look at the last non-empty line; the label is expected to be here.
-        last = lines[-1] if lines else ""
-
-        # 5) Extract the first token from that line, strip punctuation, and normalize.
-        first = (last.split()[0] if last else "").strip(":，。.").upper()
-
-        # 6) If the token is a valid label, return it; otherwise return UNKNOWN.
-        if first in ("SAFE", "VULNERABLE"):
-            return first
-
-        return "UNKNOWN"
+        return self.template.format(code=code)

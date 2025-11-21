@@ -1,4 +1,4 @@
-# ui/dashboard.py — Glacier Code v2.0
+# ui/dashboard.py — PromptAudit Code v2.0
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
 # Purpose:

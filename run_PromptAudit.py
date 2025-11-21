@@ -1,8 +1,8 @@
 def new_func():
-    # ui/run_PromptAudit.py — Launcher for Code v2.0 Glacier Dashboard
+    # ui/run_PromptAudit.py — Launcher for Code v2.0 Dashboard
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
-# This file is the entry point for launching the Glacier "Code v2.0" dashboard.
+# This file is the entry point for launching the "Code v2.0" dashboard.
 # Its only job is to create the main application window (the dashboard)
 # and start the GUI event loop.
     import ttkbootstrap as tb              # Themed Tkinter wrapper for modern-looking GUIs

@@ -1,4 +1,4 @@
-# evaluation/metrics.py — Confusion matrix + derived metrics for Glacier Code v2.0
+# evaluation/metrics.py — Confusion matrix + derived metrics for PromptAudit v2.0
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
 # This dataclass tracks all components of the confusion matrix:

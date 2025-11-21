@@ -1,4 +1,4 @@
-# prompts/base_prompt.py — Glacier v3.0 (Unified Prompt Interface for Code v2.0)
+# prompts/base_prompt.py — PromptAudit v2.0 (Unified Prompt Interface)
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
 # Purpose:
@@ -34,8 +34,9 @@ class BasePrompt:
     #   - Explicitly asks for SAFE or VULNERABLE
     #   - Requests a single-word answer
     template = (
-        "Classify the following code as SAFE or VULNERABLE. "
-        "Return only one word.\n\n{code}\n\nAnswer:"
+        "Analyze the following code snippet and determine whether it is secure or insecure.\n"
+        "Provide your analysis if needed. Final classification instructions will follow.\n\n"
+        "{code}\n\n"
     )
 
     def apply(self, *args, raw_prompt: bool = False, **kwargs):

@@ -1,4 +1,4 @@
-# evaluation/report.py — Glacier v2.0
+# evaluation/report.py — PromptAudit v2.0
 # Author: Steffen Camarato — University of Central Florida
 #
 # 💡 WHAT THIS FILE DOES

@@ -217,6 +217,7 @@ PromptAudit/
 │   └── screenshots/...        # README images
 |
 ├── evaluation/
+|   ├── label_parser.py        # Handles the model output responses
 │   ├── metrics.py             # TP/TN/FP/FN + Accuracy/Precision/Recall/F1
 │   └── report.py              # Full interactive HTML report generator
 |
@@ -311,7 +312,4 @@ Camarato, S. "PromptAudit: A Prompt-Engineered Framework for AI-Driven Vulnerabi
 
 ---
 
-
 © 2025 Steffen Camarato — All Rights Reserved.
-
-

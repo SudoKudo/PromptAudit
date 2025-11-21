@@ -1,114 +1,67 @@
-# prompts/cot.py — Chain-of-Thought (CoT) strategy for Code v2.0
+# prompts/cot.py — PromptAudit v2.0: Chain-of-Thought (CoT) classification strategy
 # Author: Steffen Camarato — University of Central Florida
+# prompts/cot.py - Chain-of-Thought (CoT) strategy for Code v2.0
+# Author: Steffen Camarato - University of Central Florida
 # ---------------------------------------------------------------------
 # Purpose:
-#   This prompt strategy asks the model to REASON step-by-step about the code
-#   and then produce a final classification label (SAFE or VULNERABLE).
+#   This prompt strategy encourages the model to reason step by step
+#   about the code and its security properties before committing to
+#   a classification.
 #
-# Changes (per your request):
-#   - Fixed the logic so the CoT prompt is sent **directly** to the model
-#     instead of being wrapped inside BasePrompt.template.
-#   - Ensured this strategy sends **exactly one prompt per sample** by using
-#     a single CoT template (no multi-template loop).
-
+# PromptAudit v2.0 design (Option A):
+#   - This strategy does NOT call model.generate() itself.
+#   - It only builds and returns a prompt string.
+#   - The ExperimentRunner:
+#       * Calls apply(model, code, gen_cfg) to get the CoT prompt.
+#       * Appends the strict SAFE/VULNERABLE "TASK" block.
+#       * Calls model.generate(full_prompt).
+#       * Sends the raw model output to parse_verdict().
+#
+#   This keeps Chain-of-Thought reasoning separate from label parsing
+#   and centralizes all classification logic.
 
 from .base_prompt import BasePrompt
 
 
 class CoT(BasePrompt):
-    """
-    Chain-of-Thought (CoT) prompt strategy.
+    """Chain-of-Thought (CoT) prompt strategy."""
 
-    Behavior:
-        - Uses a single reasoning-style prompt that asks the model to think
-          step-by-step about potential vulnerabilities in the code.
-        - After the reasoning, the model is explicitly instructed to end with a
-          final label: SAFE or VULNERABLE, on its own line.
-        - The code then parses the model's response and extracts that final label
-          from the last non-empty line.
-
-    This implementation:
-        - Makes one model call per code snippet (no looping over multiple templates).
-        - Sends the CoT prompt directly to model.generate(), not through BasePrompt.apply.
-    """
-
-    # Logical identifier for this strategy (used in configs / reporting).
+    # Logical identifier for this strategy (used in configs and reporting).
     name = "cot"
 
     # Single CoT-style template:
-    #   - Ask for step-by-step reasoning.
-    #   - Require the model to end with SAFE or VULNERABLE on a new line.
+    #   - Ask for step by step reasoning about potential vulnerabilities.
+    #   - The final SAFE/VULNERABLE formatting is not specified here;
+    #     the runner adds that instruction block.
     template = (
-        "Analyze the following code step-by-step, reasoning about potential vulnerabilities. "
-        "After your reasoning, on a new final line, output only one word: SAFE or VULNERABLE.\n\n"
-        "Code:\n{code}\n\nReasoning:\n1) "
+        "You are a secure code auditor. Analyze the following code step by step, "
+        "carefully reasoning about any potential security vulnerabilities, such as "
+        "buffer overflows, injections, improper validation, race conditions, and "
+        "other common issues.\n\n"
+        "Explain your reasoning clearly before you decide on the final classification.\n\n"
+        "Code:\n{code}\n\n"
+        "Reasoning:\n1) "
     )
 
     def apply(self, model, code, gen_cfg):
         """
-        Apply the CoT strategy to a given code snippet.
+        Build and return the Chain-of-Thought prompt string.
 
         Args:
             model:
-                Model object that must implement `generate(prompt: str) -> str`.
+                Backend model instance (not used directly here, but included
+                for interface consistency with other strategies).
             code (str):
                 The code snippet to analyze.
             gen_cfg (dict):
-                Generation configuration dictionary (temperature, stop sequences, etc.).
-                It is included for interface consistency (other strategies use it),
-                but this method does not modify behavior based on gen_cfg directly.
+                Generation configuration (temperature, etc.). Not used here,
+                since this strategy does not call model.generate() itself.
 
         Returns:
             str:
-                - "SAFE" or "VULNERABLE" if a valid label is parsed from the model output.
-                - "UNKNOWN" if the model's response does not contain a clear final label.
-
-        Process:
-            1) Format the CoT template with {code} to build a single, full prompt.
-            2) Call model.generate(prompt) once.
-            3) Strip and split the response into non-empty lines.
-            4) Look at the last non-empty line and extract the first token.
-            5) Normalize and check if that token is SAFE or VULNERABLE.
-            6) Return the label, or "UNKNOWN" if no valid label is found.
+                A fully formatted CoT prompt string. The ExperimentRunner will:
+                    - Append the strict SAFE/VULNERABLE task instructions,
+                    - Call model.generate(full_prompt),
+                    - Feed the raw output to parse_verdict().
         """
-
-        # ------------------------------------------------------------------
-        # 1) Build the full CoT prompt with the provided code snippet.
-        # ------------------------------------------------------------------
-        prompt = self.template.format(code=code)
-
-        # ------------------------------------------------------------------
-        # 2) Call the model directly with the CoT prompt.
-        #    (We intentionally do NOT call BasePrompt.apply here, because
-        #     that would wrap this CoT prompt inside the base template.)
-        # ------------------------------------------------------------------
-        result = model.generate(prompt)
-        if not result:
-            # If the model returns an empty or falsy string, we cannot extract a label.
-            return "UNKNOWN"
-
-        # ------------------------------------------------------------------
-        # 3) Normalize the model output and split into non-empty lines.
-        # ------------------------------------------------------------------
-        text = result.strip()
-        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-
-        # Take the last non-empty line; the label is expected to appear here.
-        last = lines[-1] if lines else ""
-
-        # ------------------------------------------------------------------
-        # 4) Extract the first token from that last line, remove punctuation,
-        #    and normalize to uppercase for comparison.
-        # ------------------------------------------------------------------
-        first = (last.split()[0] if last else "").strip(":，。.").upper()
-
-        # ------------------------------------------------------------------
-        # 5) Check if the token is a valid label.
-        # ------------------------------------------------------------------
-        if first in ("SAFE", "VULNERABLE"):
-            return first
-
-        # ------------------------------------------------------------------
-        # 6) If the final line does not yield a clean label, return UNKNOWN.
-        # ------------------------------------------------------------------
-        return "UNKNOWN"
+        return self.template.format(code=code)

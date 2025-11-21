@@ -1,43 +1,47 @@
-# prompts/self_consistency.py — Glacier v2.0
+# prompts/self_consistency.py — PromptAudit v2.0: Adaptive Chain-of-Thought (CoT) + Self-Consistency classification strategy
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
 # Purpose:
-#   This strategy combines Self-Consistency (multiple stochastic samples +
-#   majority vote) with AdaptiveCoT-style efficiency:
+#   Self-Consistency strategy with Adaptive CoT behavior, rewritten for the
+#   PromptAudit v2.0 pipeline where:
 #
-#     1. For each of N samples (sc_samples):
-#          a) Try a fast direct SAFE/VULNERABLE classification.
-#          b) If unclear, fall back to CoT-style reasoning prompts.
-#     2. Collect all valid SAFE/VULNERABLE responses as votes.
-#     3. Return the majority label, or UNKNOWN if no valid votes.
+#       • Prompt strategies RETURN RAW MODEL OUTPUT (per sample)
+#       • parse_verdict() is the ONLY label interpreter
+#       • Self-Consistency votes on parsed verdicts, not text
 #
-#   With raw_prompt=True:
-#     - The direct and reasoning templates are now sent directly to the model,
-#       with no additional wrapping from BasePrompt.template.
-
+#   This version:
+#       - Draws N stochastic samples (sc_samples)
+#       - For each sample:
+#             1) Generate a direct-style prompt (fast)
+#             2) If parsing fails, generate a reasoning-style prompt (slow)
+#             3) Parse each raw output using parse_verdict()
+#       - Collect only valid SAFE/VULNERABLE votes
+#       - Return the MAJORITY label ("safe"/"vulnerable") or "unknown"
+#
+#   All SAFE/VULNERABLE logic is centralized in evaluation.label_parser.
 
 import time, collections
 from .base_prompt import BasePrompt
+from evaluation.label_parser import parse_verdict
 
 
 class SelfConsistency(BasePrompt):
-    """Self-Consistency with integrated AdaptiveCoT behavior for efficiency."""
+    """Self-Consistency with integrated Adaptive-CoT behavior."""
 
-    # Logical name for this strategy, used in configs and reports.
-    name = "self_consistency"
+    name = "self_consistency"  # Logical name for this strategy, used in configs and reports.
+    returns_label = True  # Signals to runner: this strategy returns a FINAL label, not a prompt
 
-    # Phase 1: direct minimal classification templates (fast path)
+
+    # Phase 1: direct minimal classification templates
     direct_templates = [
-        "You are a security auditor. Classify this code as SAFE or VULNERABLE. "
-        "Respond with one word only — SAFE or VULNERABLE.\n\nCode:\n{code}\n\nAnswer:",
-        "Determine if this code is SAFE or VULNERABLE. Do not explain. "
-        "Respond with one word only: SAFE or VULNERABLE.\n\n{code}\n\nLabel:"
+        "You are a security auditor. Classify this code as SAFE or VULNERABLE.\n\n{code}\n\nAnswer:",
+        "Determine if this code is SAFE or VULNERABLE.\n\n{code}\n\nLabel:"
     ]
 
-    # Phase 2: fallback reasoning templates (slow path)
+    # Phase 2: reasoning templates (fallback)
     reasoning_templates = [
-        "You are an expert in secure software analysis. Think step-by-step, then on the final line output only SAFE or VULNERABLE.\n\nCode:\n{code}\n\nReasoning:\n1) ",
-        "You are a senior secure code auditor. Analyze carefully, then finish with one word only: SAFE or VULNERABLE.\n\n{code}\n\nAnalysis:\n1) "
+        "You are an expert code auditor. Think step-by-step about vulnerabilities.\n\n{code}\n\nReasoning:\n1) ",
+        "Analyze carefully and consider all potential risks.\n\n{code}\n\nAnalysis:\n1) "
     ]
 
     def apply(self, model, code, gen_cfg):
@@ -56,38 +60,44 @@ class SelfConsistency(BasePrompt):
 
         Returns:
             str:
-                - "SAFE" or "VULNERABLE" based on majority vote among valid outputs.
-                - "UNKNOWN" if no valid SAFE/VULNERABLE labels are obtained.
+                - "safe" or "vulnerable" based on majority vote among valid outputs.
+                - "unknown" if no valid SAFE/VULNERABLE labels are obtained.
+
+        Note:
+            Unlike other strategies, this one returns the FINAL label string,
+            not raw model output. The runner must respect returns_label=True.
         """
 
-        # Number of self-consistency samples (default to 5 if missing).
         n = int(gen_cfg.get("sc_samples", 5))
         votes = []
 
-        for i in range(n):
+        for _ in range(n):
             # --- Phase 1: attempt direct fast classification
-            label = self._try_templates(model, code, gen_cfg, self.direct_templates)
+            raw = self._generate_from_templates(model, code, gen_cfg, self.direct_templates)
+            label = parse_verdict(raw, model_name=getattr(model, "name", "model"))
 
-            if label == "UNKNOWN":
+            if label == "unknown":
                 # --- Phase 2: fallback to reasoning templates
-                label = self._try_templates(model, code, gen_cfg, self.reasoning_templates)
+                raw = self._generate_from_templates(model, code, gen_cfg, self.reasoning_templates)
+                label = parse_verdict(raw, model_name=getattr(model, "name", "model"))
 
             # Record only valid binary labels as votes.
-            if label in ("SAFE", "VULNERABLE"):
+            if label in ("safe", "vulnerable"):
                 votes.append(label)
 
             # Small delay to avoid hammering the backend (API/Ollama friendliness).
             time.sleep(0.1)
 
         if not votes:
-            return "UNKNOWN"
+            return "unknown"
 
         # Majority voting: take the most frequent label among votes.
         return collections.Counter(votes).most_common(1)[0][0]
 
-    def _try_templates(self, model, code, gen_cfg, templates):
+    def _generate_from_templates(self, model, code, gen_cfg, templates):
         """
-        Internal helper — test multiple templates and return the first valid binary result.
+        Internal helper — try multiple templates and return the first non-empty
+        RAW model output.
 
         Args:
             model:
@@ -101,8 +111,8 @@ class SelfConsistency(BasePrompt):
 
         Returns:
             str:
-                - "SAFE" or "VULNERABLE" if any template yields a clean label.
-                - "UNKNOWN" if all templates are ambiguous or empty.
+                The first non-empty raw output from model.generate, or an
+                empty string if all attempts fail.
         """
         for tpl in templates:
             # Build the full prompt for this code snippet.
@@ -111,22 +121,7 @@ class SelfConsistency(BasePrompt):
             # Use BasePrompt.apply in raw_prompt mode so we send this prompt
             # directly to the model without wrapping it in BasePrompt.template.
             result = super().apply(model, prompt, gen_cfg, raw_prompt=True)
-            if not result:
-                continue
+            if result:
+                return result
 
-            # Normalize the model output and split into non-empty lines.
-            text = result.strip()
-            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-
-            # Take the last non-empty line; the label is expected here.
-            last = lines[-1] if lines else ""
-
-            # Extract the first token, strip punctuation, and normalize case.
-            first = (last.split()[0] if last else "").strip(":，。.").upper()
-
-            # If the token is a valid label, return it immediately.
-            if first in ("SAFE", "VULNERABLE"):
-                return first
-
-        # If none of the templates produced a valid label, indicate failure.
-        return "UNKNOWN"
+        return ""
