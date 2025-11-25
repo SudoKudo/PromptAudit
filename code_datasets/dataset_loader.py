@@ -12,6 +12,7 @@
 # The goal is to allow maximum flexibility while keeping the API extremely simple.
 
 from .toy_dataset import load_toy
+from ._local_cve_dataset_loader import load_cvefixes_dataset
 
 
 def load_dataset(cfg_or_name, progress=lambda m: None):
@@ -85,6 +86,13 @@ def load_dataset(cfg_or_name, progress=lambda m: None):
     # Local datasets (e.g., toy CSV, or user-provided CSV)
     # ------------------------------------------------------------------
     elif src == "local":
+        # cve fixes dataset loader special
+        if name.lower() == "cvefixes_local":
+            progress(f"Loading local CVEfixes dataset from folder structure...")
+            data = load_cvefixes_dataset(path or "../data/CVE_Dataset/cve_code_files")
+            progress(f"Loaded CVEfixes samples: {len(data)}")
+            return data
+        
         # If no explicit path is given, assume the CSV lives in /data/.
         dataset_path = path or f"data/{name}.csv"
 
