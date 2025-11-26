@@ -17,6 +17,7 @@ from evaluation.label_parser import parse_verdict  # Centralized SAFE/VULNERABLE
 from evaluation.metrics import Metrics as MetricTracker   # Tracks confusion-matrix counts and derived metrics
 from evaluation.report import HtmlReport                  # Renders the interactive HTML report
 from code_datasets.dataset_loader import load_dataset     # Central dataset loader (local files + HF-based datasets)
+from code_datasets._local_cve_dataset_loader import load_cvefixes_dataset
 from models.model_loader import load_model                # Central model loader (Ollama, HF, API backends)
 from prompts.prompt_loader import load_prompt_strategy as load_prompt  # Loads the configured prompt strategy object
 
