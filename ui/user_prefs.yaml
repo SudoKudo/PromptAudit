@@ -1,9 +1,9 @@
 datasets:
-- toy
+- cvefixes_local
 experiment_name: Computer Security Project
 experiment_notes: Full Expirement Run
 frequency_penalty: 0.0
-max_new_tokens: 250
+max_new_tokens: 248
 models:
 - mistral:latest
 - gemma:7b
@@ -19,9 +19,9 @@ prompts:
 - adaptive_cot
 - self_consistency
 repetition_penalty: 1.0
-sc_samples: 5
-seed: 42
+sc_samples: 4
+seed: 40
 stop_sequences: []
 temperature: 0.2
-top_k: 40
+top_k: 37
 top_p: 0.9

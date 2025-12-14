@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 from tqdm import tqdm
 
-def load_cvefixes_dataset(source_path: str = "../data/CVE_Dataset/cve_code_files"):
+def load_cvefixes_dataset(source_path: str = None):
     """
         Load CVEfixes dataset from local folder structure.
         
@@ -33,7 +33,13 @@ def load_cvefixes_dataset(source_path: str = "../data/CVE_Dataset/cve_code_files
             - code_after → SAFE samples
             - Language inferred from file extension
         """
-        
+    if source_path is None:
+        # Get the directory where this script is located
+        current_file = Path(__file__).resolve()
+        # Navigate up to project root, then down to data directory
+        project_root = current_file.parent.parent  # Go up two levels from code_datasets/
+        source_path = project_root / "data" / "CVE_Dataset" / "cve_code_files"
+
     extension_to_language = {
             '.c': 'C',
             '.cpp': 'C++', '.cc': 'C++', '.cxx': 'C++', '.h': 'C++', '.hpp': 'C++',
@@ -132,10 +138,10 @@ def load_cvefixes_dataset(source_path: str = "../data/CVE_Dataset/cve_code_files
     return samples
 
 
-dataset = load_cvefixes_dataset("../data/CVE_Dataset/cve_code_files/")
+# dataset = load_cvefixes_dataset("../data/CVE_Dataset/cve_code_files/")
 
-print(f"Total samples: {len(dataset):,}")
-print(f"Vulnerable samples: {sum(1 for s in dataset if s['label'] == 'VULNERABLE'):,}")
-print(f"Safe samples: {sum(1 for s in dataset if s['label'] == 'SAFE'):,}")
-print(f"\nLanguages: {set(s['language'] for s in dataset)}")
-print(f"\nFirst sample: {dataset[0]}")
+# print(f"Total samples: {len(dataset):,}")
+# print(f"Vulnerable samples: {sum(1 for s in dataset if s['label'] == 'VULNERABLE'):,}")
+# print(f"Safe samples: {sum(1 for s in dataset if s['label'] == 'SAFE'):,}")
+# print(f"\nLanguages: {set(s['language'] for s in dataset)}")
+# print(f"\nFirst sample: {dataset[0]}")

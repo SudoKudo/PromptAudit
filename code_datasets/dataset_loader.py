@@ -89,7 +89,7 @@ def load_dataset(cfg_or_name, progress=lambda m: None):
         # cve fixes dataset loader special
         if name.lower() == "cvefixes_local":
             progress(f"Loading local CVEfixes dataset from folder structure...")
-            data = load_cvefixes_dataset(path or "../data/CVE_Dataset/cve_code_files")
+            data = load_cvefixes_dataset()
             progress(f"Loaded CVEfixes samples: {len(data)}")
             return data
         
