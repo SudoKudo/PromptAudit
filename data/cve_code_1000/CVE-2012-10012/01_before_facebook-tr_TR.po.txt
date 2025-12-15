@@ -1,0 +1,182 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: facebook\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-07-10 19:07+0300\n"
+"PO-Revision-Date: 2012-07-10 19:07+0300\n"
+"Last-Translator: zos <zos@bestwebsoft.com>\n"
+"Language-Team: bestwebsoft.com <plugin@bestwebsoft.com>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-KeywordsList: __;_e\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-Language: Spanish\n"
+"X-Poedit-Country: SPAIN\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: facebook-button-plugin.php:78
+msgid "Activated plugins"
+msgstr "Aktif Eklentiler"
+
+#: facebook-button-plugin.php:80
+#: facebook-button-plugin.php:88
+#: facebook-button-plugin.php:96
+msgid "Read more"
+msgstr "Devamını Oku"
+
+#: facebook-button-plugin.php:80
+#: facebook-button-plugin.php:518
+#: facebook-button-plugin.php:530
+msgid "Settings"
+msgstr "Ayarlar"
+
+#: facebook-button-plugin.php:86
+msgid "Installed plugins"
+msgstr "Yüklü eklentiler"
+
+#: facebook-button-plugin.php:94
+msgid "Recommended plugins"
+msgstr "Eklenti Önerileri"
+
+#: facebook-button-plugin.php:96
+msgid "Download"
+msgstr "İndir"
+
+#: facebook-button-plugin.php:96
+#, php-format
+msgid "Install %s"
+msgstr "%s 'i yükle"
+
+#: facebook-button-plugin.php:96
+msgid "Install now from wordpress.org"
+msgstr "wordpress.org'dan yükle"
+
+#: facebook-button-plugin.php:98
+msgid "If you have any questions, please contact us via plugin@bestwebsoft.com or fill in our contact form on our site"
+msgstr "Sormak istediğiniz herhangi bir sorunuz varsa bize plugin@bestwebsoft.com adresine e-posta atarak ya da sitemizdeki iletişim formunu kullanarak ulaşabilirsiniz."
+
+#: facebook-button-plugin.php:109
+#: facebook-button-plugin.php:222
+msgid "FaceBook Button Options"
+msgstr "Facebook Butonu Ayarları"
+
+#: facebook-button-plugin.php:109
+msgid "FaceBook Button"
+msgstr "Facebook Butonu"
+
+#: facebook-button-plugin.php:169
+msgid "Options saved."
+msgstr "Değişiklikler Kaydedildi."
+
+#: facebook-button-plugin.php:191
+msgid "Error: File size > 32K"
+msgstr "HATA: Dosya boyutu 32KB'tan büyük!"
+
+#: facebook-button-plugin.php:194
+msgid "Error: Invalid file type"
+msgstr "HATA: geçersiz dosya uzantısı"
+
+#: facebook-button-plugin.php:204
+msgid "Error: moving file failed"
+msgstr "HATA: Dosya taşınamadı!"
+
+#: facebook-button-plugin.php:208
+msgid "Error: check image width or height"
+msgstr "HATA: Görselin genişlik ve yüksekliğini kontrol edin."
+
+#: facebook-button-plugin.php:213
+msgid "Uploading Error: check image properties"
+msgstr "Yükleme Hatası: Görselin özelliklerini kontol edin."
+
+#: facebook-button-plugin.php:229
+msgid "Your's FaceBook Id:"
+msgstr "Facebook ID:"
+
+#: facebook-button-plugin.php:235
+msgid "Display button:"
+msgstr ""
+
+#: facebook-button-plugin.php:237
+msgid "My Page"
+msgstr ""
+
+#: facebook-button-plugin.php:238
+msgid "Like"
+msgstr ""
+
+#: facebook-button-plugin.php:243
+msgid "Choose display option:"
+msgstr "Gösterim Şeklini Seçin"
+
+#: facebook-button-plugin.php:247
+msgid "Standart FaceBook image"
+msgstr "Standard Facebook Görseli"
+
+#: facebook-button-plugin.php:249
+msgid "Custom FaceBook image"
+msgstr "Kişisel Facebook Görseli"
+
+#: facebook-button-plugin.php:256
+msgid "Current image:"
+msgstr "Şu andaki görsel:"
+
+#: facebook-button-plugin.php:269
+msgid "FaceBook image:"
+msgstr "Facebook görseli:"
+
+#: facebook-button-plugin.php:273
+msgid "Image properties: max image width:100px; max image height:40px; max image size:32Kb; image types:\"jpg\", \"jpeg\"."
+msgstr "Görsel Özellikleri: maksimum genişlik: 100px; maksimum yükseklik: 40px; maksimum boyut: 32KB; izin verilen uzantılar: \"jpg\", \"jpeg\"."
+
+#: facebook-button-plugin.php:281
+msgid "FaceBook Button Position:"
+msgstr "Facebook Butonunun Konumu"
+
+#: facebook-button-plugin.php:285
+msgid "Before"
+msgstr "Önce"
+
+#: facebook-button-plugin.php:286
+msgid "After"
+msgstr "Sonra"
+
+#: facebook-button-plugin.php:287
+msgid "Before and After"
+msgstr "Önce ve Sonra"
+
+#: facebook-button-plugin.php:288
+msgid "Shortcode"
+msgstr "Kısakod Olarak"
+
+#: facebook-button-plugin.php:290
+msgid "If you would like to add a FaceBook button to your website, just copy and put this shortcode onto your post or page:"
+msgstr "Web sitenize Facebook butonu yerleştirmek istiyorsanız, aşağıdaki kodu kopyalayın ve sayfanızda/yazınızda butonun görünmesini istediğiniz yere yapıştırın.(HTML editörüyle!)"
+
+#: facebook-button-plugin.php:295
+msgid "FaceBook Button language:"
+msgstr ""
+
+#: facebook-button-plugin.php:406
+msgid "Select language for Like button"
+msgstr ""
+
+#: facebook-button-plugin.php:412
+msgid "Save Changes"
+msgstr "Değişiklikleri Kaydet"
+
+#: facebook-button-plugin.php:531
+msgid "FAQ"
+msgstr "SSS (Sık Sorulan Sorular)"
+
+#: facebook-button-plugin.php:532
+msgid "Support"
+msgstr "Destek"
+
+#~ msgid "Install Now"
+#~ msgstr "Установить сейчас"
+#~ msgid "BWS Plugins"
+#~ msgstr "Плагины BWS"
+

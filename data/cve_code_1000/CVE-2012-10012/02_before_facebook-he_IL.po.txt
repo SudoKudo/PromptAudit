@@ -1,0 +1,217 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Facebook Button Plugin\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-07-10 19:06+0300\n"
+"PO-Revision-Date: 2012-07-10 19:06+0300\n"
+"Last-Translator: zos <zos@bestwebsoft.com>\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Poedit-Language: Hebrew\n"
+"X-Poedit-Country: ISRAEL\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-KeywordsList: __;_e;__ngettext:1,2;_n:1,2;__ngettext_noop:1,2;_n_noop:1,2;_c,_nc:4c,1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2\n"
+"X-Poedit-Basepath: ../\n"
+"X-Textdomain-Support: yes\n"
+"X-Poedit-SearchPath-0: .\n"
+
+# @ facebook
+#: facebook-button-plugin.php:78
+msgid "Activated plugins"
+msgstr "תוספים פעילים"
+
+# @ facebook
+#: facebook-button-plugin.php:80
+#: facebook-button-plugin.php:88
+#: facebook-button-plugin.php:96
+msgid "Read more"
+msgstr "קרא עוד"
+
+# @ facebook
+#: facebook-button-plugin.php:80
+#: facebook-button-plugin.php:518
+#: facebook-button-plugin.php:530
+msgid "Settings"
+msgstr "הגדרות"
+
+# @ facebook
+#: facebook-button-plugin.php:86
+msgid "Installed plugins"
+msgstr "תוספים מותקנים"
+
+# @ facebook
+#: facebook-button-plugin.php:94
+msgid "Recommended plugins"
+msgstr "תוספים מומלצים"
+
+# @ facebook
+#: facebook-button-plugin.php:96
+msgid "Download"
+msgstr "הורד"
+
+# @ default
+#: facebook-button-plugin.php:96
+#, php-format
+msgid "Install %s"
+msgstr "התקן %s"
+
+# @ facebook
+#: facebook-button-plugin.php:96
+msgid "Install now from wordpress.org"
+msgstr "הורד כעת מ wordpress.org"
+
+# @ facebook
+#: facebook-button-plugin.php:98
+msgid "If you have any questions, please contact us via plugin@bestwebsoft.com or fill in our contact form on our site"
+msgstr "אם יש לך שאלות כלשהן, אנא צור עמנו קשר דרך plugin@bestwebsoft.com או שתמלא את טופס יצירת הקשר באתר שלנו"
+
+# @ facebook
+#: facebook-button-plugin.php:109
+#: facebook-button-plugin.php:222
+msgid "FaceBook Button Options"
+msgstr "אפשרויות כפתור פייסבוק"
+
+# @ facebook
+#: facebook-button-plugin.php:109
+msgid "FaceBook Button"
+msgstr "כפתור פייסבוק"
+
+# @ facebook
+#: facebook-button-plugin.php:169
+msgid "Options saved."
+msgstr "האפשרויות נשמרו."
+
+# @ facebook
+#: facebook-button-plugin.php:191
+msgid "Error: File size > 32K"
+msgstr "שגיאה: גודל הקובץ גדול מ 32K"
+
+# @ facebook
+#: facebook-button-plugin.php:194
+msgid "Error: Invalid file type"
+msgstr "שגיאה: סוג קובץ שגוי"
+
+# @ facebook
+#: facebook-button-plugin.php:204
+msgid "Error: moving file failed"
+msgstr "שגיאה: העברת הקובץ נכשלה"
+
+# @ facebook
+#: facebook-button-plugin.php:208
+msgid "Error: check image width or height"
+msgstr "שגיאה: בדוק את רוחב וגובה התמונה"
+
+# @ facebook
+#: facebook-button-plugin.php:213
+msgid "Uploading Error: check image properties"
+msgstr "שגיאת טעינה: בדוק את מאפייני התמונה"
+
+# @ facebook
+#: facebook-button-plugin.php:229
+msgid "Your's FaceBook Id:"
+msgstr "מזהה הפייסבוק שלך:"
+
+# @ facebook
+#: facebook-button-plugin.php:235
+msgid "Display button:"
+msgstr "הצג כפתור:"
+
+# @ captcha
+#: facebook-button-plugin.php:237
+msgid "My Page"
+msgstr "הדף שלי"
+
+# @ captcha
+#: facebook-button-plugin.php:238
+msgid "Like"
+msgstr "לייק"
+
+# @ facebook
+#: facebook-button-plugin.php:243
+msgid "Choose display option:"
+msgstr "בחר אפשרות תצוגה:"
+
+# @ facebook
+#: facebook-button-plugin.php:247
+msgid "Standart FaceBook image"
+msgstr "תמונת פייסבוק רגילה"
+
+# @ facebook
+#: facebook-button-plugin.php:249
+msgid "Custom FaceBook image"
+msgstr "תמונת פייסבוק מותאמת אישית"
+
+# @ facebook
+#: facebook-button-plugin.php:256
+msgid "Current image:"
+msgstr "תמונה נוכחית:"
+
+# @ facebook
+#: facebook-button-plugin.php:269
+msgid "FaceBook image:"
+msgstr "תמונת פייסבוק:"
+
+# @ facebook
+#: facebook-button-plugin.php:273
+msgid "Image properties: max image width:100px; max image height:40px; max image size:32Kb; image types:\"jpg\", \"jpeg\"."
+msgstr "מאפייני תמונה: רוחב מירבי: 100 פיקסלים. גובה מירבי: 40 פיקסלים, גודל מירבי: 32KB, סוגי קובץ: \"jpg\", \"jpeg\"."
+
+# @ facebook
+#: facebook-button-plugin.php:281
+msgid "FaceBook Button Position:"
+msgstr "מיקום כפתור הפייסבוק:"
+
+# @ facebook
+#: facebook-button-plugin.php:285
+msgid "Before"
+msgstr "לפני"
+
+# @ facebook
+#: facebook-button-plugin.php:286
+msgid "After"
+msgstr "אחרי"
+
+# @ facebook
+#: facebook-button-plugin.php:287
+msgid "Before and After"
+msgstr "לפני ואחרי"
+
+# @ facebook
+#: facebook-button-plugin.php:288
+msgid "Shortcode"
+msgstr "קיצור קוד"
+
+# @ facebook
+#: facebook-button-plugin.php:290
+msgid "If you would like to add a FaceBook button to your website, just copy and put this shortcode onto your post or page:"
+msgstr "אם ברצונך להוסיף כפתור פייסבוק לאתר שלך, פשוט העתק את קיצור הקוד שלהלן והדבק אל הפוסט או הדף שלך:"
+
+# @ facebook
+#: facebook-button-plugin.php:295
+msgid "FaceBook Button language:"
+msgstr "שפת כפתור פייסבוק:"
+
+# @ facebook
+#: facebook-button-plugin.php:406
+msgid "Select language for Like button"
+msgstr "בחר שפה לכפתור לייק"
+
+# @ default
+#: facebook-button-plugin.php:412
+msgid "Save Changes"
+msgstr "שמור שינויים"
+
+# @ facebook
+#: facebook-button-plugin.php:531
+msgid "FAQ"
+msgstr "שאלות ותשובות"
+
+# @ facebook
+#: facebook-button-plugin.php:532
+msgid "Support"
+msgstr "תמיכה"
+

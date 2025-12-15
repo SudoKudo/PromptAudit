@@ -1,0 +1,478 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: portfolio\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-07-12 13:08+0300\n"
+"PO-Revision-Date: 2012-07-12 13:08+0300\n"
+"Last-Translator: zos <zos@bestwebsoft.com>\n"
+"Language-Team: bestwebsoft.com <plugin@bestwebsoft.com>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-KeywordsList: __;_e\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-Language: Dutch\n"
+"X-Poedit-Country: NETHERLANDS\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: portfolio.php:57
+#: portfolio.php:757
+msgid "The following files \"portfolio.php\" and \"portfolio-post.php\" were not found in the directory of your theme. Please copy them from the directory `/wp-content/plugins/portfolio/template/` to the directory of your theme for the correct work of the Portfolio plugin"
+msgstr ""
+
+#: portfolio.php:88
+msgid "Short description"
+msgstr "Korte beschrijving"
+
+#: portfolio.php:88
+msgid "A short description which you'd like to be displayed on your portfolio page"
+msgstr "Een korte beschrijving die weergegeven word op je portfolio pagina"
+
+#: portfolio.php:89
+msgid "Date of completion"
+msgstr "Einddatum"
+
+#: portfolio.php:89
+msgid "The date when the task was completed"
+msgstr "De datum waarop het project voltooid was"
+
+#: portfolio.php:90
+#: portfolio.php:798
+msgid "Link"
+msgstr "Link"
+
+#: portfolio.php:90
+msgid "A link to the site"
+msgstr "Een link naar de website"
+
+#: portfolio.php:91
+#: portfolio.php:801
+msgid "SVN"
+msgstr "SVN"
+
+#: portfolio.php:91
+msgid "URL of the SVN"
+msgstr "URL van de SVN"
+
+#: portfolio.php:106
+#: portfolio.php:107
+#: portfolio.php:647
+msgid "Portfolio"
+msgstr "Portfolio"
+
+#: portfolio.php:108
+msgid "Add New"
+msgstr "Voeg toe"
+
+#: portfolio.php:109
+msgid "Add New Portfolio"
+msgstr "Voeg Portfolio toe"
+
+#: portfolio.php:110
+msgid "Edit"
+msgstr "Bewerk"
+
+#: portfolio.php:111
+msgid "Edit Portfolio"
+msgstr "Bewerk Portfolio"
+
+#: portfolio.php:112
+msgid "New Portfolio"
+msgstr "Nieuw Portfolio"
+
+#: portfolio.php:113
+#: portfolio.php:114
+msgid "View Portfolio"
+msgstr "Bekijk Portfolio"
+
+#: portfolio.php:115
+msgid "Search Portfolio"
+msgstr "Zoek Portfolio"
+
+#: portfolio.php:116
+msgid "No portfolio found"
+msgstr "Geen Portfolio gevonden"
+
+#: portfolio.php:117
+msgid "No portfolio found in Trash"
+msgstr "Geen Portfolio gevonden in de prullebak"
+
+#: portfolio.php:118
+msgid "Parent Portfolio"
+msgstr "Bovenliggend Portfolio"
+
+#: portfolio.php:120
+msgid "Create a Portfolio."
+msgstr "Maak een Portfolio"
+
+#: portfolio.php:152
+msgid "Executor Profiles"
+msgstr "Profielen van de makers"
+
+#: portfolio.php:153
+msgid "Executor Profile"
+msgstr "Profiel van de maker"
+
+#: portfolio.php:154
+msgid "Search Executor Profiles"
+msgstr "Zoek profielen van de makers"
+
+#: portfolio.php:155
+msgid "Popular Executor Profiles"
+msgstr "Populaire makers"
+
+#: portfolio.php:156
+msgid "All Executor Profiles"
+msgstr "Alle profielen"
+
+#: portfolio.php:157
+msgid "Parent Executor Profile"
+msgstr "Bovenliggende maker"
+
+#: portfolio.php:158
+msgid "Parent Executor Profile:"
+msgstr "Bovenliggende maker:"
+
+#: portfolio.php:159
+msgid "Edit Executor Profile"
+msgstr "Bewerk het profiel van de maker"
+
+#: portfolio.php:160
+msgid "Update Executor Profile"
+msgstr "Update het profiel van de maker"
+
+#: portfolio.php:161
+msgid "Add New Executor Profile"
+msgstr "Voeg een nieuwe maker toe"
+
+#: portfolio.php:162
+msgid "New Executor Profile Name"
+msgstr "Profiel naam van de maker"
+
+#: portfolio.php:163
+msgid "Separate Executor Profiles with commas"
+msgstr "Scheid de maker profielen met een komma"
+
+#: portfolio.php:164
+msgid "Add or remove Executor Profile"
+msgstr "Beheer maker profielen"
+
+#: portfolio.php:165
+msgid "Choose from the most used Executor Profile"
+msgstr "Kies uit de meest gebruike profielen"
+
+#: portfolio.php:166
+msgid "Executor Profiles "
+msgstr "Profielen van makers"
+
+#: portfolio.php:182
+#: portfolio.php:196
+#: portfolio.php:223
+#: portfolio.php:231
+#: portfolio.php:803
+#: portfolio.php:1001
+#: template/portfolio.php:13
+msgid "Technologies"
+msgstr "Technologieën"
+
+#: portfolio.php:183
+msgid "Technology"
+msgstr "Technologie"
+
+#: portfolio.php:184
+msgid "Search Technologies"
+msgstr "Zoek Technologieën"
+
+#: portfolio.php:185
+msgid "Popular Technologies"
+msgstr "Populaire Technologieën"
+
+#: portfolio.php:186
+msgid "All Technologies"
+msgstr "Alle Technologieën"
+
+#: portfolio.php:187
+msgid "Parent Technology"
+msgstr "Bovenliggende Technologie"
+
+#: portfolio.php:188
+msgid "Parent Technology:"
+msgstr "Bovenliggende Technologie:"
+
+#: portfolio.php:189
+msgid "Edit Technology"
+msgstr "Bewerk Technologie"
+
+#: portfolio.php:190
+msgid "Update Technology"
+msgstr "Update Technologie"
+
+#: portfolio.php:191
+msgid "Add New Technology"
+msgstr "Voeg Technologie toe"
+
+#: portfolio.php:192
+msgid "New Technology Name"
+msgstr "Nieuwe Technologie naam"
+
+#: portfolio.php:193
+msgid "Separate Technologies with commas"
+msgstr "Scheid de technologie met een  komma"
+
+#: portfolio.php:194
+msgid "Add or remove Technology"
+msgstr "Bewerk Technologieën"
+
+#: portfolio.php:195
+msgid "Choose from the most used Technology"
+msgstr "Kies uit de meest gebruikte Technologie"
+
+#: portfolio.php:226
+msgid "Your most used portfolio technologies in cloud format"
+msgstr "De meest gebruikte portfolio technologieën in cloud formaat"
+
+#: portfolio.php:294
+msgid "Title"
+msgstr "Titel"
+
+#: portfolio.php:349
+msgid "Portfolio Info"
+msgstr "Protfolio Informatie"
+
+#: portfolio.php:523
+#: portfolio.php:907
+msgid "FAQ"
+msgstr "FAQ"
+
+#: portfolio.php:524
+#: portfolio.php:908
+msgid "Support"
+msgstr "Support"
+
+#: portfolio.php:616
+msgid "Activated plugins"
+msgstr "Geactiveerde plug-ins"
+
+#: portfolio.php:618
+#: portfolio.php:626
+#: portfolio.php:634
+#: portfolio.php:996
+#: template/portfolio.php:127
+msgid "Read more"
+msgstr "Lees verder"
+
+#: portfolio.php:618
+#: portfolio.php:895
+#: portfolio.php:906
+msgid "Settings"
+msgstr "Instellingen"
+
+#: portfolio.php:624
+msgid "Installed plugins"
+msgstr "Geïnstalleerde plug-ins"
+
+#: portfolio.php:632
+msgid "Recommended plugins"
+msgstr "Aanbevolen plug-ins"
+
+#: portfolio.php:634
+msgid "Download"
+msgstr "Download"
+
+#: portfolio.php:634
+#, php-format
+msgid "Install %s"
+msgstr "Installeer %s"
+
+#: portfolio.php:634
+msgid "Install now from wordpress.org"
+msgstr "Installeer nu vanaf wordpress.org"
+
+#: portfolio.php:636
+msgid "If you have any questions, please contact us via plugin@bestwebsoft.com or fill in our contact form on our site"
+msgstr "Als u vragen heeft, neem contact op via plugin@bestwebsoft.com of vul het contactformulier op onze website in"
+
+#: portfolio.php:671
+#: portfolio.php:809
+msgid "Date of completion:"
+msgstr "Einddatum:"
+
+#: portfolio.php:672
+#: portfolio.php:810
+msgid "Link:"
+msgstr "Link:"
+
+#: portfolio.php:673
+#: portfolio.php:811
+msgid "Short description:"
+msgstr "Korte beschrijving:"
+
+#: portfolio.php:674
+#: portfolio.php:812
+msgid "Description:"
+msgstr "Beschrijving:"
+
+#: portfolio.php:675
+#: portfolio.php:813
+msgid "SVN:"
+msgstr "SVN:"
+
+#: portfolio.php:676
+#: portfolio.php:814
+msgid "Executors Profile:"
+msgstr "Profiel van de maker:"
+
+#: portfolio.php:677
+#: portfolio.php:815
+msgid "More screenshots:"
+msgstr "Meer schermafbeeldingen:"
+
+#: portfolio.php:678
+#: portfolio.php:816
+msgid "Technologies:"
+msgstr "Technologieën:"
+
+#: portfolio.php:753
+msgid "Options saved."
+msgstr "Opties opgeslagen."
+
+#: portfolio.php:764
+msgid "Portfolio Options"
+msgstr "Portfolio Opties"
+
+#: portfolio.php:770
+msgid "The size of the cover album for portfolio"
+msgstr "Het formaat van de portfolio afbeelding"
+
+#: portfolio.php:772
+#: portfolio.php:780
+msgid "Image size name"
+msgstr "Naam voor deze afbeeldingsgrootte"
+
+#: portfolio.php:773
+#: portfolio.php:781
+msgid "Width (in px)"
+msgstr "Breedte (in px)"
+
+#: portfolio.php:774
+#: portfolio.php:782
+msgid "Height (in px)"
+msgstr "Hoogte (in px)"
+
+#: portfolio.php:778
+msgid "Size for portfolio image"
+msgstr "Grootte voor portfolio afbeelding"
+
+#: portfolio.php:786
+msgid "WordPress will create a copy of the post thumbnail with the specified dimensions when you upload a new photo. It is necessary to click on the button Update images at the bottom of this page in order to generate new images according to new dimensions "
+msgstr "Wordpress zal een kopie maken van de ge-uploade foto met de gespecificeerde afmetingen voor de miniatuur. Het is nodig om de button Update Afbeeldingen te klikken als de afmetingen verandert zijn om zo de miniaturen opnieuw te genereren."
+
+#: portfolio.php:789
+msgid "Count images in row"
+msgstr "Aantal afbeeldingen in een rij"
+
+#: portfolio.php:795
+msgid "Display additional fields"
+msgstr "Geef extra velden weer"
+
+#: portfolio.php:797
+msgid "Date"
+msgstr ""
+
+#: portfolio.php:799
+msgid "Short Description"
+msgstr "Korte beschrijving:"
+
+#: portfolio.php:800
+msgid "Description"
+msgstr "Beschrijving"
+
+#: portfolio.php:802
+msgid "Executor"
+msgstr "Maker"
+
+#: portfolio.php:807
+msgid "Text for additional fields"
+msgstr ""
+
+#: portfolio.php:822
+msgid "Save Changes"
+msgstr "Bewaar veranderingen"
+
+#: portfolio.php:833
+msgid "Update the way storage your post_meta information for portfolio"
+msgstr "Update de manier van opslag van uw post_meta informatie voor het portfolio"
+
+#: portfolio.php:835
+msgid "Update All Info"
+msgstr "Update alle info"
+
+#: portfolio.php:840
+msgid "Update post_meta information..."
+msgstr "Update post_meta informatie ..."
+
+#: portfolio.php:842
+msgid "No informations found."
+msgstr "Geen informatie gevonden."
+
+#: portfolio.php:843
+msgid "All information was updated."
+msgstr "Alle informatie is bijgewerkt."
+
+#: portfolio.php:844
+#: portfolio.php:860
+msgid "Error."
+msgstr "Error."
+
+#: portfolio.php:849
+msgid "Update images for portfolio"
+msgstr "Update afbeeldingen voor het portfolio"
+
+#: portfolio.php:851
+msgid "Update images"
+msgstr "Update afbeeldingen"
+
+#: portfolio.php:856
+msgid "Update images..."
+msgstr "Update afbeeldingen ..."
+
+#: portfolio.php:858
+msgid "No images found."
+msgstr "Geen afbeeldingen gevonden."
+
+#: portfolio.php:859
+msgid "All images was updated."
+msgstr "Alle afbeeldingen zijn bijgewerkt."
+
+#: portfolio.php:1006
+#: template/portfolio.php:136
+#: template/portfolio-post.php:156
+#, php-format
+msgid "View all posts in %s"
+msgstr "Bekijk alle berichten in %s"
+
+#: update_images.php:110
+msgid "Could not read image size"
+msgstr "De afmetingen zijn niet te lezen"
+
+#: update_images.php:116
+msgid "Could not calculate resized image dimensions"
+msgstr "De afmetingen kunnen niet berekend worden"
+
+#: update_images.php:145
+#: update_images.php:148
+#: update_images.php:153
+msgid "Resize path invalid"
+msgstr "Bestandsfolder ongeldig"
+
+#~ msgid "Style for lightbox"
+#~ msgstr "Style voor de lightbox"
+#~ msgid "Display sidebar"
+#~ msgstr "Geeft sidebar weer"
+#~ msgid "On frontend portfolio page"
+#~ msgstr "Op de portfolio beginpagina"
+#~ msgid "On single portfolio page"
+#~ msgstr "Op de individuele portfolio pagina"
+

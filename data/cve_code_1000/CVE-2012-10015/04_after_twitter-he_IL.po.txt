@@ -1,0 +1,157 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Twitter Plugin v2.13\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-07-24 20:03+0300\n"
+"PO-Revision-Date: 2012-07-24 20:03+0300\n"
+"Last-Translator: zos <zos@bestwebsoft.com>\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Poedit-Language: Hebrew\n"
+"X-Poedit-Country: ISRAEL\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-KeywordsList: __;_e;__ngettext:1,2;_n:1,2;__ngettext_noop:1,2;_n_noop:1,2;_c,_nc:4c,1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2\n"
+"X-Poedit-Basepath: ../\n"
+"X-Textdomain-Support: yes\n"
+"X-Poedit-SearchPath-0: .\n"
+
+# @ twitter
+#: twitter.php:80
+msgid "Activated plugins"
+msgstr "תוספים פעילים"
+
+# @ twitter
+#: twitter.php:82
+#: twitter.php:90
+#: twitter.php:98
+msgid "Read more"
+msgstr "קרא עוד"
+
+# @ twitter
+#: twitter.php:82
+#: twitter.php:245
+#: twitter.php:254
+msgid "Settings"
+msgstr "הגדרות"
+
+# @ twitter
+#: twitter.php:88
+msgid "Installed plugins"
+msgstr "תוספים מותקנים"
+
+# @ twitter
+#: twitter.php:96
+msgid "Recommended plugins"
+msgstr "תוספים מומלצים"
+
+# @ twitter
+#: twitter.php:98
+msgid "Download"
+msgstr "הורד"
+
+# @ default
+#: twitter.php:98
+#, php-format
+msgid "Install %s"
+msgstr "התקן %s"
+
+# @ twitter
+#: twitter.php:98
+msgid "Install now from wordpress.org"
+msgstr "התקן כעת מ wordpress.org"
+
+# @ twitter
+#: twitter.php:100
+msgid "If you have any questions, please contact us via plugin@bestwebsoft.com or fill in our contact form on our site"
+msgstr "אם יש לך שאלות כלשהן, אנא צור עמנו קשר דרך plugin@bestwebsoft.com או שתמלא את טופס יצירת הקשר שבאתר שלנו"
+
+# @ twitter
+#: twitter.php:131
+#: twitter.php:153
+msgid "Twitter Options"
+msgstr "אפשרויות טוויטר"
+
+# @ twitter
+#: twitter.php:131
+msgid "Twitter"
+msgstr "טוויטר"
+
+# @ twitter
+#: twitter.php:149
+msgid "Options saved."
+msgstr "האפשרויות נשמרו."
+
+# @ twitter
+#: twitter.php:160
+msgid "Settings for the button \"Follow Me\":"
+msgstr "הגדרות עבור הכפתור \"עקוב אחרי\":"
+
+# @ twitter
+#: twitter.php:164
+msgid "Enter your username:"
+msgstr "הזן את שם המשתמש שלך:"
+
+# @ twitter
+#: twitter.php:168
+msgid "If you do not have Twitter account yet you need to create it using this link"
+msgstr "אם אין לך עדיין חשבון טוויטר, אתה יכול ליצור אותו דרך קישור זה"
+
+# @ twitter
+#: twitter.php:169
+msgid "Put a shortcode [follow_me] on necessary page or post to use \"Follow Me\" button."
+msgstr "שים את קיצור הקוד [follow_me] בכל דף או פוסט בו אתה רוצה להשתמש בכפתור \"עקוב אחרי\"."
+
+# @ twitter
+#: twitter.php:170
+msgid "If you would like to utilize this button in another place, please put strings below into the template source code"
+msgstr "אם תרצה להשתמש בכפתור הזה במקום אחר, בבקשה הזן את המחרוזות שלהלן אל קוד המקור של התבנית"
+
+# @ twitter
+#: twitter.php:174
+msgid "Settings for the button \"Twitter\":"
+msgstr "הגדרות עבור הכפתור \"טוויטר\":"
+
+# @ twitter
+#: twitter.php:178
+msgid "Choose a position for an icon \"Twitter\":"
+msgstr "בחר מיקום עבור הצלמית \"טוויטר\":"
+
+# @ twitter
+#: twitter.php:181
+msgid "Top position"
+msgstr "למעלה"
+
+# @ twitter
+#: twitter.php:182
+msgid "Bottom position"
+msgstr "למטה"
+
+# @ twitter
+#: twitter.php:183
+msgid "When clicking this sign a user adds to their twitter page article that they liked along with a link to it."
+msgstr "כאשר משתמש לוחץ על סמל זה, הוא מוסיף לטוויטר שלו את המאמר שאהב עם קישור אליו."
+
+# @ default
+#: twitter.php:188
+msgid "Save Changes"
+msgstr "שמור שינויים"
+
+# @ twitter
+#: twitter.php:224
+msgid "Click here if you liked this article."
+msgstr "אם אהבת את המאמר לחץ כאן."
+
+# @ twitter
+#: twitter.php:255
+msgid "FAQ"
+msgstr "שאלות ותשובות"
+
+# @ twitter
+#: twitter.php:256
+msgid "Support"
+msgstr "תמיכה"
+

@@ -1,0 +1,343 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: contact_form\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-07-24 19:11+0300\n"
+"PO-Revision-Date: 2012-07-24 19:11+0300\n"
+"Last-Translator: zos <zos@bestwebsoft.com>\n"
+"Language-Team: Pantelis Panteloglou <ppanteloglou@gmail.com>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-KeywordsList: __;_e\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-Language: Greek\n"
+"X-Poedit-Country: GREECE\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: contact_form.php:76
+msgid "Activated plugins"
+msgstr "Ενεργοποιημένα πρόσθετα"
+
+#: contact_form.php:78
+#: contact_form.php:86
+#: contact_form.php:94
+msgid "Read more"
+msgstr "Διαβάστε περισσότερα"
+
+#: contact_form.php:78
+#: contact_form.php:805
+#: contact_form.php:814
+msgid "Settings"
+msgstr "Ρυθμίσεις"
+
+#: contact_form.php:84
+msgid "Installed plugins"
+msgstr "Εγκατεστημένα πρόσθετα"
+
+#: contact_form.php:92
+msgid "Recommended plugins"
+msgstr "Προτεινόμενα πρόσθετα"
+
+#: contact_form.php:94
+msgid "Download"
+msgstr "Κατέβασμα"
+
+#: contact_form.php:94
+#, php-format
+msgid "Install %s"
+msgstr "Εγκατάσταση %s"
+
+#: contact_form.php:94
+msgid "Install now from wordpress.org"
+msgstr "Εγκαταστήστε τώρα από το wordpress.org"
+
+#: contact_form.php:96
+msgid "If you have any questions, please contact us via plugin@bestwebsoft.com or fill in our contact form on our site"
+msgstr "Αν έχετε απορίες, επικοινωνήστε στο plugin@bestwebsoft.com ή μέσω της φόρμας επικοινωνίας της ιστοσελίδας μας"
+
+#: contact_form.php:108
+#: contact_form.php:262
+msgid "Contact Form Options"
+msgstr "Επιλογές φόρμας επικοινωνίας"
+
+#: contact_form.php:108
+msgid "Contact Form"
+msgstr "Φόρμα επικοινωνίας"
+
+#: contact_form.php:136
+#: contact_form.php:180
+#: contact_form.php:216
+#: contact_form.php:366
+msgid "Name:"
+msgstr "Όνομα:"
+
+#: contact_form.php:137
+#: contact_form.php:181
+#: contact_form.php:217
+#: contact_form.php:367
+msgid "E-Mail Address:"
+msgstr "Διεύθυνση e-mail:"
+
+#: contact_form.php:138
+#: contact_form.php:182
+#: contact_form.php:218
+#: contact_form.php:368
+msgid "Subject:"
+msgstr "Θέμα:"
+
+#: contact_form.php:139
+#: contact_form.php:183
+#: contact_form.php:219
+#: contact_form.php:369
+msgid "Message:"
+msgstr "Μήνυμα:"
+
+#: contact_form.php:140
+#: contact_form.php:184
+#: contact_form.php:220
+#: contact_form.php:370
+msgid "Attachment:"
+msgstr "Επισύναψη:"
+
+#: contact_form.php:142
+#: contact_form.php:186
+msgid "Thank you for contacting us."
+msgstr "Ευχαριστούμε για την επικοινωνία."
+
+#: contact_form.php:230
+msgid "If the option 'Redirect to page' is selected then url field should be fillied in the following format"
+msgstr ""
+
+#: contact_form.php:237
+#: contact_form.php:242
+#: contact_form.php:251
+msgid "Options saved."
+msgstr "Οι επιλογές αποθηκεύτηκαν."
+
+#: contact_form.php:245
+msgid "Such user is not exist. Settings are not saved."
+msgstr "Δεν υπάρχει τέτοιος χρήστης. Οι επιλογές δεν αποθηκεύτηκαν."
+
+#: contact_form.php:254
+msgid "Please input correct email. Settings are not saved."
+msgstr "Παρακαλούμε εισάγετε μια σωστή διεύθυνση email. Οι επιλογές δεν αποθηκεύτηκαν."
+
+#: contact_form.php:267
+msgid "If you would like to add a Contact Form to your website, just copy and put this shortcode onto your post or page or widget:"
+msgstr "Αν θέλετε να προσθέσετε μια φόρμα επικοινωνίας στην ιστοσελίδα σας, αντιγράψτε αυτό τον σύντομο κώδικα στην ανάρτηση, τη σελίδα ή το πρόσθετό σας:"
+
+#: contact_form.php:268
+msgid "If information in the below fields are empty then the message will be send to an address which was specified during registration."
+msgstr "Αν τα παρακάτω πεδία είναι κενά, το μήνυμα θα σταλεί στη διεύθυνση που ορίστηκε κατά την εγγραφή"
+
+#: contact_form.php:272
+msgid "Use email of wordpress user:"
+msgstr "Τα μηνύματα θα στέλνονται στο email του χρήστη:"
+
+#: contact_form.php:278
+msgid "Select user name"
+msgstr "επιλογή χρήστη"
+
+#: contact_form.php:283
+msgid "Set a name of user who will get messages from a contact form."
+msgstr "Τα μηνύματα θα λαμβάνει ο χρήστης"
+
+#: contact_form.php:287
+msgid "Use this email:"
+msgstr "Τα μηνύματα θα στέλνονται στο email "
+
+#: contact_form.php:293
+msgid "Set an email address which will be used for messages receiving."
+msgstr "Ορίστε την διεύθυνση email στην οποία θα αποστέλλονται τα μηνύματα."
+
+#: contact_form.php:297
+msgid "Additional options"
+msgstr "Πρόσθετες επιλογές"
+
+#: contact_form.php:300
+msgid "Display Attachment block"
+msgstr "Προβολή κουτιού επισύναψης αρχείου"
+
+#: contact_form.php:305
+msgid "Users can attach files of the following types"
+msgstr "Οι χρήστες μπορούν να επισυνάψουν αρχεία τύπου"
+
+#: contact_form.php:309
+msgid "Display Attachment explanations"
+msgstr ""
+
+#: contact_form.php:314
+msgid "Display explanations after Attachment block"
+msgstr ""
+
+#: contact_form.php:318
+msgid "Display Send me a copy block"
+msgstr "Προβολή κουτιού \"Στείλτο και σ' εμένα\""
+
+#: contact_form.php:324
+msgid "What use?"
+msgstr ""
+
+#: contact_form.php:329
+msgid "Wp-mail"
+msgstr "Wp-mail"
+
+#: contact_form.php:330
+msgid "To send mail you can use the wordpress wp_mail function"
+msgstr ""
+
+#: contact_form.php:338
+msgid "Mail"
+msgstr "Mail"
+
+#: contact_form.php:339
+msgid "To send mail you can use the php mail function"
+msgstr ""
+
+#: contact_form.php:343
+msgid "Change FROM fields of the contact form"
+msgstr "Αλλάξτε το πεδίο \"ΑΠΟ\" της φόρμας επικοινωνίας"
+
+#: contact_form.php:349
+msgid "Display additional info in email"
+msgstr "Προβολή πρόσθετων πληροφοριών στο email"
+
+#: contact_form.php:354
+#: contact_form.php:676
+msgid "Sent from (ip address)"
+msgstr "Στάλθηκε από (διεύθυνση ip)"
+
+#: contact_form.php:355
+#: contact_form.php:681
+msgid "Date/Time"
+msgstr "Ημερομηνία/Ώρα"
+
+#: contact_form.php:356
+#: contact_form.php:686
+msgid "Coming from (referer)"
+msgstr "Από (referer)"
+
+#: contact_form.php:357
+#: contact_form.php:691
+msgid "Using (user agent)"
+msgstr "με χρήση (user agent)"
+
+#: contact_form.php:361
+msgid "Change label for fields of the contact form"
+msgstr "Αλλαγή ετικετών πεδίων της φόρμας επικοινωνίας"
+
+#: contact_form.php:374
+msgid "Action after the send mail"
+msgstr ""
+
+#: contact_form.php:376
+#, fuzzy
+msgid "Display text"
+msgstr "Προβολή κουτιού επισύναψης αρχείου"
+
+#: contact_form.php:377
+msgid "Text"
+msgstr ""
+
+#: contact_form.php:378
+msgid "Redirect to page"
+msgstr ""
+
+#: contact_form.php:379
+msgid "Url"
+msgstr ""
+
+#: contact_form.php:384
+msgid "Save Changes"
+msgstr "Αποθήκευση αλλαγών"
+
+#: contact_form.php:420
+msgid "Sorry, your e-mail could not be delivered."
+msgstr "Δυστυχώς δεν μπορέσαμε να στείλουμε το email σας."
+
+#: contact_form.php:478
+msgid "You can attach files of the following types"
+msgstr "Μπορείτε να επισυνάψετε αρχεία τύπου"
+
+#: contact_form.php:486
+msgid "Send me a copy"
+msgstr "Στείλε μου ένα αντίγραφο"
+
+#: contact_form.php:496
+msgid "Submit"
+msgstr "Υποβολή"
+
+#: contact_form.php:535
+msgid "Your name is required."
+msgstr "Γράψτε οπωσδήποτε το όνομά σας."
+
+#: contact_form.php:536
+msgid "A proper e-mail address is required."
+msgstr "Απαιτείται μια έγκυρη διεύθυνση e-mail."
+
+#: contact_form.php:537
+msgid "Subject text is required."
+msgstr "Γράψτε οπωσδήποτε ένα θέμα"
+
+#: contact_form.php:538
+msgid "Message text is required."
+msgstr "Απαιτείται κείμενο μηνύματος."
+
+#: contact_form.php:539
+msgid "Please make corrections below and try again."
+msgstr "Κάνετε διορθώσεις παρακάτω και ξαναπροσπαθήστε."
+
+#: contact_form.php:570
+msgid "Attachment is broken."
+msgstr "Το επισυναπτόμενο δεν λειτουργεί."
+
+#: contact_form.php:583
+msgid "Please complete the CAPTCHA."
+msgstr "Συμπληρώστε το CAPTCHA."
+
+#: contact_form.php:699
+msgid "Contact from"
+msgstr "Επικοινωνία από"
+
+#: contact_form.php:704
+msgid "Name"
+msgstr "Όνομα"
+
+#: contact_form.php:707
+msgid "Email"
+msgstr "E-Mail"
+
+#: contact_form.php:710
+msgid "Subject"
+msgstr "Θέμα"
+
+#: contact_form.php:713
+msgid "Message"
+msgstr "Μήνυμα"
+
+#: contact_form.php:716
+msgid "Site"
+msgstr "Ιστοσελίδα"
+
+#: contact_form.php:761
+msgid "If you can see this MIME than your client doesn't accept MIME types!"
+msgstr "Wenn Sie dieses MIME sehen, unterstützt Ihr Client keine MIME-Typen!"
+
+#: contact_form.php:815
+msgid "FAQ"
+msgstr "Συχνές ερωτήσεις"
+
+#: contact_form.php:816
+msgid "Support"
+msgstr "Υποστήριξη"
+
+#~ msgid "E-Mail Addresse:"
+#~ msgstr "Indirizzo e-mail:"
+#~ msgid "Install Now"
+#~ msgstr "Installa Ora"
+#~ msgid "BWS Plugins"
+#~ msgstr "BWS Plugins"
+
