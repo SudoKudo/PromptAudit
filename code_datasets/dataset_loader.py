@@ -11,6 +11,8 @@
 #
 # The goal is to allow maximum flexibility while keeping the API extremely simple.
 
+import yaml
+from pathlib import Path
 from .toy_dataset import load_toy
 from ._local_cve_dataset_loader import load_cvefixes_dataset
 
@@ -45,6 +47,75 @@ def load_dataset(cfg_or_name, progress=lambda m: None):
         - The GUI uses this to ensure dataset selection works consistently regardless of source.
     """
 
+    # # ------------------------------------------------------------------
+    # # Normalize input (handle string vs. dict configuration)
+    # # ------------------------------------------------------------------
+    # if isinstance(cfg_or_name, dict):
+    #     # Extract source, name, and optional custom path.
+    #     src = cfg_or_name.get("source", "local")
+    #     name = cfg_or_name.get("name", "unknown")
+    #     path = cfg_or_name.get("path")
+
+    # else:
+    #     # If the caller passed a simple dataset name, treat it as a string.
+    #     name = str(cfg_or_name)
+    #     path = None
+
+    #     # Auto-detect whether the dataset should be loaded from Hugging Face.
+    #     # These specific datasets are large research datasets hosted remotely.
+    #     if name.lower() in ["cvefixes", "bigvul", "vul4j"]:
+    #         src = "huggingface"
+    #     else:
+    #         # Everything else defaults to a local dataset in /data/.
+    #         src = "local"
+
+    # # ------------------------------------------------------------------
+    # # Hugging Face datasets (remote)
+    # # ------------------------------------------------------------------
+    # if src == "huggingface":
+    #     progress(f"Logging in and downloading {name} from Hugging Face…")
+
+    #     # Imported here to avoid heavy dependencies when HF datasets aren't used.
+    #     from .hf_loader import load_hf_dataset
+
+    #     # Download and load the dataset from Hugging Face.
+    #     data = load_hf_dataset(name)
+
+    #     progress(f"Downloaded {name} samples: {len(data)}")
+    #     return data
+
+    # # ------------------------------------------------------------------
+    # # Local datasets (e.g., toy CSV, or user-provided CSV)
+    # # ------------------------------------------------------------------
+    # elif src == "local":
+    #     if name.lower().startswith("cvefixes"):
+    #         progress(f"Loading CVE-style dataset: {name}")
+    #         data = load_cvefixes_dataset(path)  # Pass the path from config
+    #         progress(f"Loaded {name} samples: {len(data)}")
+    #         return data
+        
+    #     dataset_path = path or f"data/{name}.csv"
+
+    #     progress(f"Loading local dataset: {dataset_path}")
+
+    #     return load_toy(dataset_path)
+
+    # # ------------------------------------------------------------------
+    # # Unknown dataset source
+    # # ------------------------------------------------------------------
+    # else:
+    #     # If the caller specifies a source we do not support, raise an error.
+    #     raise ValueError(f"Unknown dataset source: {src}")
+    
+    # ------------------------------------------------------------------
+    # Load config.yaml to get dataset paths
+    # ------------------------------------------------------------------
+    config_path = Path(__file__).parent.parent / "config.yaml"
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+    
+    datasets_config = {d['name']: d for d in config.get('datasets', [])}
+
     # ------------------------------------------------------------------
     # Normalize input (handle string vs. dict configuration)
     # ------------------------------------------------------------------
@@ -53,19 +124,22 @@ def load_dataset(cfg_or_name, progress=lambda m: None):
         src = cfg_or_name.get("source", "local")
         name = cfg_or_name.get("name", "unknown")
         path = cfg_or_name.get("path")
-
     else:
-        # If the caller passed a simple dataset name, treat it as a string.
+        # If the caller passed a simple dataset name, look it up in config
         name = str(cfg_or_name)
-        path = None
-
-        # Auto-detect whether the dataset should be loaded from Hugging Face.
-        # These specific datasets are large research datasets hosted remotely.
-        if name.lower() in ["cvefixes", "bigvul", "vul4j"]:
-            src = "huggingface"
+        
+        # Look up the dataset in config to get its path and source
+        if name in datasets_config:
+            dataset_info = datasets_config[name]
+            src = dataset_info.get("source", "local")
+            path = dataset_info.get("path")
         else:
-            # Everything else defaults to a local dataset in /data/.
-            src = "local"
+            # Fallback for unknown datasets
+            path = None
+            if name.lower() in ["cvefixes", "bigvul", "vul4j"]:
+                src = "huggingface"
+            else:
+                src = "local"
 
     # ------------------------------------------------------------------
     # Hugging Face datasets (remote)
@@ -86,11 +160,11 @@ def load_dataset(cfg_or_name, progress=lambda m: None):
     # Local datasets (e.g., toy CSV, or user-provided CSV)
     # ------------------------------------------------------------------
     elif src == "local":
-        # cve fixes dataset loader special
-        if name.lower() == "cvefixes_local":
-            progress(f"Loading local CVEfixes dataset from folder structure...")
-            data = load_cvefixes_dataset()
-            progress(f"Loaded CVEfixes samples: {len(data)}")
+        # Check if this is a CVE-style dataset (folder structure with before/after files)
+        if name.lower().startswith("cvefixes"):
+            progress(f"Loading CVE-style dataset: {name} from {path}")
+            data = load_cvefixes_dataset(path)  # Pass the specific path from config
+            progress(f"Loaded {name} samples: {len(data)}")
             return data
         
         # If no explicit path is given, assume the CSV lives in /data/.

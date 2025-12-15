@@ -40,6 +40,7 @@ def load_cvefixes_dataset(source_path: str = None):
         project_root = current_file.parent.parent  # Go up two levels from code_datasets/
         source_path = project_root / "data" / "CVE_Dataset" / "cve_code_files"
 
+    source_dir = Path(source_path)
     extension_to_language = {
             '.c': 'C',
             '.cpp': 'C++', '.cc': 'C++', '.cxx': 'C++', '.h': 'C++', '.hpp': 'C++',
@@ -81,15 +82,27 @@ def load_cvefixes_dataset(source_path: str = None):
         readme_path = cve_folder / "README.txt"
         original_filenames = {}
         
+        # if readme_path.exists():
+        #     readme_content = readme_path.read_text(encoding='utf-8')
+        #     for line in readme_content.split('\n'):
+        #         match = re.match(r'\s+(\d+)\.\s+(.+)', line)
+        #         if match:
+        #             file_num = int(match.group(1))
+        #             filename = match.group(2).strip()
+        #             original_filenames[file_num] = filename
         if readme_path.exists():
-            readme_content = readme_path.read_text(encoding='utf-8')
-            for line in readme_content.split('\n'):
-                match = re.match(r'\s+(\d+)\.\s+(.+)', line)
-                if match:
-                    file_num = int(match.group(1))
-                    filename = match.group(2).strip()
-                    original_filenames[file_num] = filename
-        
+            try:
+                # Use errors='replace' to handle encoding issues gracefully
+                readme_content = readme_path.read_text(encoding='utf-8', errors='replace')
+                for line in readme_content.split('\n'):
+                    match = re.match(r'\s+(\d+)\.\s+(.+)', line)
+                    if match:
+                        file_num = int(match.group(1))
+                        filename = match.group(2).strip()
+                        original_filenames[file_num] = filename
+            except Exception:
+                # If README fails, just skip it (filenames will be "unknown")
+                pass
         before_files = sorted(cve_folder.glob('*_before_*.txt'))
         
         for before_file in before_files:
@@ -102,8 +115,10 @@ def load_cvefixes_dataset(source_path: str = None):
             filename = original_filenames.get(file_num, "unknown")
             language = infer_language(filename)
             
+            # Read VULNERABLE (before) code
             try:
-                code_before = before_file.read_text(encoding='utf-8')
+                # Use errors='replace' to handle encoding issues
+                code_before = before_file.read_text(encoding='utf-8', errors='replace')
                 if code_before:
                     samples.append({
                         "id": sample_id,
@@ -115,12 +130,15 @@ def load_cvefixes_dataset(source_path: str = None):
                         "label": "VULNERABLE"
                     })
                     sample_id += 1
-            except Exception:
+            except Exception as e:
+                # Skip files that can't be read
                 pass
             
+            # Read SAFE (after) code
             try:
                 if after_file.exists():
-                    code_after = after_file.read_text(encoding='utf-8')
+                    # Use errors='replace' to handle encoding issues
+                    code_after = after_file.read_text(encoding='utf-8', errors='replace')
                     if code_after:
                         samples.append({
                             "id": sample_id,
@@ -132,7 +150,8 @@ def load_cvefixes_dataset(source_path: str = None):
                             "label": "SAFE"
                         })
                         sample_id += 1
-            except Exception:
+            except Exception as e:
+                # Skip files that can't be read
                 pass
     
     return samples
