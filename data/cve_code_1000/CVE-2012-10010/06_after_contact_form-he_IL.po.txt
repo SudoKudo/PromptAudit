@@ -1,0 +1,409 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Contact Form Plugin v3.20\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-07-24 19:11+0300\n"
+"PO-Revision-Date: 2012-07-24 19:11+0300\n"
+"Last-Translator: zos <zos@bestwebsoft.com>\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Poedit-Language: Hebrew\n"
+"X-Poedit-Country: ISRAEL\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-KeywordsList: __;_e;__ngettext:1,2;_n:1,2;__ngettext_noop:1,2;_n_noop:1,2;_c,_nc:4c,1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2\n"
+"X-Poedit-Basepath: ../\n"
+"X-Textdomain-Support: yes\n"
+"X-Poedit-SearchPath-0: .\n"
+
+# @ contact_form
+#: contact_form.php:76
+msgid "Activated plugins"
+msgstr "תוספים פעילים"
+
+# @ contact_form
+#: contact_form.php:78
+#: contact_form.php:86
+#: contact_form.php:94
+msgid "Read more"
+msgstr "קרא עוד"
+
+# @ contact_form
+#: contact_form.php:78
+#: contact_form.php:805
+#: contact_form.php:814
+msgid "Settings"
+msgstr "הגדרות"
+
+# @ contact_form
+#: contact_form.php:84
+msgid "Installed plugins"
+msgstr "תוספים מותקנים"
+
+# @ contact_form
+#: contact_form.php:92
+msgid "Recommended plugins"
+msgstr "תוספים מומלצים"
+
+# @ contact_form
+#: contact_form.php:94
+msgid "Download"
+msgstr "הורד"
+
+# @ default
+#: contact_form.php:94
+#, php-format
+msgid "Install %s"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:94
+msgid "Install now from wordpress.org"
+msgstr "התקן כעת מ wordpress.org"
+
+# @ contact_form
+#: contact_form.php:96
+msgid "If you have any questions, please contact us via plugin@bestwebsoft.com or fill in our contact form on our site"
+msgstr "אם יש לך שאלות כלשהן, אנא צור עמנו קשר דרך plugin@bestwebsoft.com או שתמלא את טופס יצירת הקשר באתר שלנו"
+
+# @ contact_form
+#: contact_form.php:108
+#: contact_form.php:262
+msgid "Contact Form Options"
+msgstr "אפשרויות טופס צור קשר"
+
+# @ contact_form
+#: contact_form.php:108
+msgid "Contact Form"
+msgstr "טופס צור קשר"
+
+# @ contact_form
+#: contact_form.php:136
+#: contact_form.php:180
+#: contact_form.php:216
+#: contact_form.php:366
+msgid "Name:"
+msgstr "שם:"
+
+# @ contact_form
+#: contact_form.php:137
+#: contact_form.php:181
+#: contact_form.php:217
+#: contact_form.php:367
+msgid "E-Mail Address:"
+msgstr "כתובת דוא\\\"ל:"
+
+# @ contact_form
+#: contact_form.php:138
+#: contact_form.php:182
+#: contact_form.php:218
+#: contact_form.php:368
+msgid "Subject:"
+msgstr "נושא:"
+
+# @ contact_form
+#: contact_form.php:139
+#: contact_form.php:183
+#: contact_form.php:219
+#: contact_form.php:369
+msgid "Message:"
+msgstr "הודעה:"
+
+# @ contact_form
+#: contact_form.php:140
+#: contact_form.php:184
+#: contact_form.php:220
+#: contact_form.php:370
+msgid "Attachment:"
+msgstr "קובץ מצורף:"
+
+# @ contact_form
+#: contact_form.php:142
+#: contact_form.php:186
+msgid "Thank you for contacting us."
+msgstr "תודה שיצרת עמנו קשר."
+
+# @ contact_form
+#: contact_form.php:230
+msgid "If the option 'Redirect to page' is selected then url field should be fillied in the following format"
+msgstr "אם האפשרות 'הפנה מחדש לדף' מסומנת אז חייבים למלא את שדה כתובת ה URL בפורמט הבא"
+
+# @ contact_form
+#: contact_form.php:237
+#: contact_form.php:242
+#: contact_form.php:251
+msgid "Options saved."
+msgstr "האפשרויות נשמרו."
+
+# @ contact_form
+#: contact_form.php:245
+msgid "Such user is not exist. Settings are not saved."
+msgstr "משתמש כזה אינו קיים. ההגדרות לא נשמרו."
+
+# @ contact_form
+#: contact_form.php:254
+msgid "Please input correct email. Settings are not saved."
+msgstr "בבקשה הזן כתובת מייל נכונה. ההגדרות לא נשמרו."
+
+# @ contact_form
+#: contact_form.php:267
+msgid "If you would like to add a Contact Form to your website, just copy and put this shortcode onto your post or page or widget:"
+msgstr "אם אתה מעוניין להוסיף טופס צור קשר לאתר שלך, פשוט העתק את קיצור הקוד שלהלן אל הפוסט או הדף או הוידג'ט שלך:"
+
+# @ contact_form
+#: contact_form.php:268
+msgid "If information in the below fields are empty then the message will be send to an address which was specified during registration."
+msgstr "אם השדות שלהלן ריקים, אז המייל יישלח אל לכתובת שצוינה בעת ההרשמה."
+
+# @ contact_form
+#: contact_form.php:272
+msgid "Use email of wordpress user:"
+msgstr "השתמש במייל של משתמש וורדפרס:"
+
+# @ contact_form
+#: contact_form.php:278
+msgid "Select user name"
+msgstr "בחר שם משתמש"
+
+# @ contact_form
+#: contact_form.php:283
+msgid "Set a name of user who will get messages from a contact form."
+msgstr "הגדר שם משתמש, אשר יקבל את ההודעות הנשלחות דרך טופס יצירת הקשר."
+
+# @ contact_form
+#: contact_form.php:287
+msgid "Use this email:"
+msgstr "השתמש במייל זה:"
+
+# @ contact_form
+#: contact_form.php:293
+msgid "Set an email address which will be used for messages receiving."
+msgstr "הגדר כתובת מייל שתשמש לקבלת הודעות."
+
+# @ contact_form
+#: contact_form.php:297
+msgid "Additional options"
+msgstr "אפשרויות נוספות"
+
+# @ contact_form
+#: contact_form.php:300
+msgid "Display Attachment block"
+msgstr "הצג אפשרות קובץ מצורף"
+
+# @ contact_form
+#: contact_form.php:305
+msgid "Users can attach files of the following types"
+msgstr "משתמשים יוכלו לצרף קבצים מהסוגים הבאים"
+
+# @ contact_form
+#: contact_form.php:309
+msgid "Display Attachment explanations"
+msgstr "הצג הסברי קובץ מצורף"
+
+# @ contact_form
+#: contact_form.php:314
+msgid "Display explanations after Attachment block"
+msgstr "הצג את ההסברים אחרי תיבת הקובץ המצורף"
+
+# @ contact_form
+#: contact_form.php:318
+msgid "Display Send me a copy block"
+msgstr "הצג תיבת שלח לי עותק"
+
+# @ contact_form
+#: contact_form.php:324
+msgid "What use?"
+msgstr "איזה שימוש?"
+
+# @ mail-send
+#: contact_form.php:329
+msgid "Wp-mail"
+msgstr ""
+
+# @ mail_send
+#: contact_form.php:330
+msgid "To send mail you can use the wordpress wp_mail function"
+msgstr ""
+
+# @ mail-send
+#: contact_form.php:338
+msgid "Mail"
+msgstr ""
+
+# @ mail_send
+#: contact_form.php:339
+msgid "To send mail you can use the php mail function"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:343
+msgid "Change FROM fields of the contact form"
+msgstr "שנה את השדות של טופס יצירת הקשר"
+
+# @ contact_form
+#: contact_form.php:349
+msgid "Display additional info in email"
+msgstr "הצג מידע נוסף במייל"
+
+# @ contact_form
+#: contact_form.php:354
+#: contact_form.php:676
+msgid "Sent from (ip address)"
+msgstr "נשלח מ (כתובת IP)"
+
+# @ contact_form
+#: contact_form.php:355
+#: contact_form.php:681
+msgid "Date/Time"
+msgstr "תאריך\\שעה"
+
+# @ contact_form
+#: contact_form.php:356
+#: contact_form.php:686
+msgid "Coming from (referer)"
+msgstr "מגיע מ (השולח)"
+
+# @ contact_form
+#: contact_form.php:357
+#: contact_form.php:691
+msgid "Using (user agent)"
+msgstr "משתמש ב (user agent)"
+
+# @ contact_form
+#: contact_form.php:361
+msgid "Change label for fields of the contact form"
+msgstr "שנה את תוויות הטופס"
+
+# @ contact_form
+#: contact_form.php:374
+msgid "Action after the send mail"
+msgstr "הפעולה שלאחר שליחת הטופס"
+
+# @ contact_form
+#: contact_form.php:376
+msgid "Display text"
+msgstr "הטקסט המוצג"
+
+# @ contact_form
+#: contact_form.php:377
+msgid "Text"
+msgstr "טקסט"
+
+# @ contact_form
+#: contact_form.php:378
+msgid "Redirect to page"
+msgstr "הפנה אל הדף"
+
+# @ contact_form
+#: contact_form.php:379
+msgid "Url"
+msgstr "URL"
+
+# @ default
+#: contact_form.php:384
+msgid "Save Changes"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:420
+msgid "Sorry, your e-mail could not be delivered."
+msgstr "מצטערים, אי אפשר היה לשלוח את המייל שלך."
+
+# @ contact_form
+#: contact_form.php:478
+msgid "You can attach files of the following types"
+msgstr "אתה יכול לצרף קבצים מן הסוגים הבאים"
+
+# @ contact_form
+#: contact_form.php:486
+msgid "Send me a copy"
+msgstr "שלח לי עותק"
+
+# @ contact_form
+#: contact_form.php:496
+msgid "Submit"
+msgstr "שלח"
+
+# @ contact_form
+#: contact_form.php:535
+msgid "Your name is required."
+msgstr "השם שלך הכרחי."
+
+# @ contact_form
+#: contact_form.php:536
+msgid "A proper e-mail address is required."
+msgstr "כתובת מייל תקנית הכרחית."
+
+# @ contact_form
+#: contact_form.php:537
+msgid "Subject text is required."
+msgstr "הנושא הכרחי."
+
+# @ contact_form
+#: contact_form.php:538
+msgid "Message text is required."
+msgstr "מילוי שדה ההודעה הכרחי."
+
+# @ contact_form
+#: contact_form.php:539
+msgid "Please make corrections below and try again."
+msgstr "אנא עשה תיקונים להלן ונסה שוב."
+
+# @ contact_form
+#: contact_form.php:570
+msgid "Attachment is broken."
+msgstr "הקובץ המצורף שבור"
+
+# @ contact_form
+#: contact_form.php:583
+msgid "Please complete the CAPTCHA."
+msgstr "אנא השלם את קוד האימות."
+
+# @ contact_form
+#: contact_form.php:699
+msgid "Contact from"
+msgstr "טופס צור קשר"
+
+# @ contact_form
+#: contact_form.php:704
+msgid "Name"
+msgstr "שם"
+
+# @ contact_form
+#: contact_form.php:707
+msgid "Email"
+msgstr "כתובת מייל"
+
+# @ contact_form
+#: contact_form.php:710
+msgid "Subject"
+msgstr "נושא"
+
+# @ contact_form
+#: contact_form.php:713
+msgid "Message"
+msgstr "תוכן ההודעה"
+
+# @ contact_form
+#: contact_form.php:716
+msgid "Site"
+msgstr "אתר"
+
+# @ contact_form
+#: contact_form.php:761
+msgid "If you can see this MIME than your client doesn't accept MIME types!"
+msgstr "אם אתה יכול לראות את ה MIME הזה, אז הלקוח שלך אינו יכול לקבל סוגי MIME!"
+
+# @ contact_form
+#: contact_form.php:815
+msgid "FAQ"
+msgstr "שאלות ותשובות"
+
+# @ contact_form
+#: contact_form.php:816
+msgid "Support"
+msgstr "תמיכה"
+

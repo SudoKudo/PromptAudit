@@ -1,0 +1,21 @@
+<html>
+	<head>
+		<title>Hacker City | Index</title>
+		<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Ek+Mukta">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+		<link type="text/css" rel="stylesheet" href="/css/style.css">
+		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+		<link type="text/css" rel="stylesheet" href="/css/materialize.css">
+		<link type="text/css" rel="stylesheet" href="/css/burn.css">
+		<link rel="shortcut icon" href="/usr/share/nginx/html/images/favicon.ico" type="image/x-icon">
+		<link rel="icon" href="/usr/share/nginx/html/images/favicon.ico" type="image/x-icon">
+		<script src="/js/materialize.js"></script>
+		<script src='https://www.google.com/recaptcha/api.js'></script>
+		<script async src="/js/spanize.js"></script>
+	</head>
+	
+<body>
+
+<?php
+	include 'layout/guest/nav.htm';
+?>	

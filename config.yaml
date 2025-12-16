@@ -143,10 +143,29 @@ datasets:
   - name: toy
     source: local
     path: data/toy.csv
+  
+  # local dataset pointing to CVE code files
+  - name: cvefixes_local
+    source: local
+    path: data/CVE_Dataset/cve_code_files/
+
+  - name: cvefixes_50
+    source: local
+    path: data/cve_code_50/
+    
+  - name: cvefixes_100
+    source: local
+    path: data/cve_code_100/
+    
+  - name: cvefixes_500
+    source: local
+    path: data/cve_code_500/
+    
+  - name: cvefixes_1000
+    source: local
+    path: data/cve_code_1000/
 
   # Hugging Face–backed datasets (loaded by name in the loader).
-  - name: cvefixes
-    source: hf
 
   - name: bigvul
     source: hf

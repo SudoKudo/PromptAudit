@@ -1,0 +1,34 @@
+{
+  "name": "Meetup",
+  "author": "Geoff Baskwill",
+  "license-name": "MIT",
+  "url": "https://example.org",
+  "descriptionmsg": "meetup-desc",
+  "type": "parserhook",
+  "MessagesDirs": {
+    "Meetup": [
+      "i18n"
+    ]
+  },
+  "Hooks": {
+    "ParserFirstCallInit": [
+      "Meetup::init"
+    ]
+  },
+  "AutoloadClasses": {
+    "Meetup": "Meetup.class.php"
+  },
+  "ResourceModules": {
+    "ext.meetup.base": {
+      "styles": [
+        "modules/ext.Meetup.base.css"
+      ]
+    }
+  },
+  "ResourceFileModulePaths": {
+    "localBasePath": "",
+    "remoteExtPath": "Meetup"
+  },
+  "version": "0.1",
+  "manifest_version": 1
+}
