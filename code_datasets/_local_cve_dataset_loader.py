@@ -114,6 +114,9 @@ def load_cvefixes_dataset(source_path: str = None):
             after_file = cve_folder / before_file.name.replace('_before_', '_after_')
             filename = original_filenames.get(file_num, "unknown")
             language = infer_language(filename)
+
+            if language == "unknown":
+                continue
             
             # Read VULNERABLE (before) code
             try:

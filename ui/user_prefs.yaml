@@ -3,14 +3,14 @@ datasets:
 experiment_name: Computer Security Project
 experiment_notes: Full Expirement Run
 frequency_penalty: 0.0
-max_new_tokens: 244
+max_new_tokens: 242
 models:
 - mistral:latest
 - gemma:7b
 - codellama:7b-instruct
 - deepseek-coder:6.7b-instruct
 - falcon:7b
-num_beams: 1
+num_beams: 4
 presence_penalty: 0.0
 prompts:
 - zero_shot
@@ -20,8 +20,8 @@ prompts:
 - self_consistency
 repetition_penalty: 1.0
 sc_samples: 1
-seed: 35
+seed: 36
 stop_sequences: []
 temperature: 0.2
-top_k: 29
+top_k: 27
 top_p: 0.9
