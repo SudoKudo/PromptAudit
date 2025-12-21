@@ -52,7 +52,8 @@ class OllamaModel(BaseModel):
         # ------------------------------------------------------------------
         # Ollama local HTTP endpoint
         # ------------------------------------------------------------------
-        url = "http://localhost:11434/api/generate"
+        # url = "http://127.0.0.1:11434/api/generate"
+        url = "http://127.0.0.1:11434/api/generate"
 
         # ------------------------------------------------------------------
         # Build generation options (fully compatible with Ollama spec)
@@ -64,6 +65,7 @@ class OllamaModel(BaseModel):
             "num_predict": self.gen_cfg.get("max_new_tokens", 100),
             "repeat_penalty": self.gen_cfg.get("repetition_penalty", 1.0),
             "seed": self.gen_cfg.get("seed", 42),
+            "num_gpu": 1,
         }
 
         # ------------------------------------------------------------------
