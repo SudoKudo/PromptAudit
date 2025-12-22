@@ -3,17 +3,18 @@ datasets:
 experiment_name: Computer Security Project
 experiment_notes: Full Expirement Run
 frequency_penalty: 0.0
-max_new_tokens: 233
+max_new_tokens: 229
 models:
-- llama3.1:8b-instruct-q5_K_M
+- qwen2.5:32b-instruct-q4_K_M
+- llama3.3:70b-instruct-q4_K_M
 num_beams: 1
 presence_penalty: 0.0
 prompts:
 - zero_shot
 repetition_penalty: 1.0
 sc_samples: 1
-seed: 23
+seed: 20
 stop_sequences: []
 temperature: 0.2
-top_k: 14
+top_k: 5
 top_p: 0.9
