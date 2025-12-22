@@ -65,7 +65,6 @@ class OllamaModel(BaseModel):
             "num_predict": self.gen_cfg.get("max_new_tokens", 100),
             "repeat_penalty": self.gen_cfg.get("repetition_penalty", 1.0),
             "seed": self.gen_cfg.get("seed", 42),
-            "num_gpu": 1,
         }
 
         # ------------------------------------------------------------------
@@ -85,7 +84,7 @@ class OllamaModel(BaseModel):
         try:
             # Send request to Ollama and record how long generation takes
             start = time.time()
-            response = requests.post(url, json=payload, timeout=120)
+            response = requests.post(url, json=payload, timeout=300)
 
             # Raise an exception for any HTTP error (4xx or 5xx)
             response.raise_for_status()
