@@ -113,6 +113,12 @@ models:
   - name: deepseek-coder:6.7b-instruct
     backend: ollama
 
+  - name: llama3.3:70b-instruct-q4_K_M
+    backend: ollama
+
+  - name: qwen2.5:32b-instruct-q4_K_M
+    backend: ollama
+
   # Hugging Face (transformers) models
   - name: gemma-7b
     backend: hf

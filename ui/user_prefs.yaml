@@ -1,27 +1,20 @@
 datasets:
-- cvefixes_500
+- cvefixes_50
 experiment_name: Computer Security Project
 experiment_notes: Full Expirement Run
 frequency_penalty: 0.0
-max_new_tokens: 242
+max_new_tokens: 229
 models:
-- mistral:latest
-- gemma:7b
-- codellama:7b-instruct
-- deepseek-coder:6.7b-instruct
-- falcon:7b
-num_beams: 4
+- qwen2.5:32b-instruct-q4_K_M
+- llama3.3:70b-instruct-q4_K_M
+num_beams: 1
 presence_penalty: 0.0
 prompts:
 - zero_shot
-- few_shot
-- cot
-- adaptive_cot
-- self_consistency
 repetition_penalty: 1.0
 sc_samples: 1
-seed: 36
+seed: 20
 stop_sequences: []
 temperature: 0.2
-top_k: 27
+top_k: 5
 top_p: 0.9

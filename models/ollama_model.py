@@ -52,7 +52,8 @@ class OllamaModel(BaseModel):
         # ------------------------------------------------------------------
         # Ollama local HTTP endpoint
         # ------------------------------------------------------------------
-        url = "http://localhost:11434/api/generate"
+        # url = "http://127.0.0.1:11434/api/generate"
+        url = "http://127.0.0.1:11434/api/generate"
 
         # ------------------------------------------------------------------
         # Build generation options (fully compatible with Ollama spec)
@@ -83,7 +84,7 @@ class OllamaModel(BaseModel):
         try:
             # Send request to Ollama and record how long generation takes
             start = time.time()
-            response = requests.post(url, json=payload, timeout=120)
+            response = requests.post(url, json=payload, timeout=300)
 
             # Raise an exception for any HTTP error (4xx or 5xx)
             response.raise_for_status()

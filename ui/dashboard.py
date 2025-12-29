@@ -1,5 +1,6 @@
 # ui/dashboard.py — PromptAudit Code v2.0
 # Author: Steffen Camarato — University of Central Florida
+#         Adjusted by Yohan Hmaiti for reasoning models and GPU compatibility
 # ---------------------------------------------------------------------
 # Purpose:
 #   This file implements the main GUI dashboard for Code v2.0 using ttkbootstrap.
@@ -41,13 +42,17 @@ LOG_DIR = "results/logs"
 # Whitelisted Ollama models that the GUI offers as options.
 # fuzzy_list_ollama_models() will intersect these with actually installed models.
 ALLOWED_MODELS = [
-    "mistral:latest",
-    "gemma:7b",
-    "gemma:7b-instruct",
-    "codellama:7b-instruct",
-    "deepseek-coder:6.7b-instruct",
-    "falcon:7b",
-    "falcon:7b-instruct",
+    # "mistral:latest",
+    # "gemma:7b",
+    # "gemma:7b-instruct",
+    # "codellama:7b-instruct",
+    # "deepseek-coder:6.7b-instruct",
+    # "falcon:7b",
+    # "falcon:7b-instruct",
+    # "llama3.1:8b-instruct-q5_K_M",
+    # reasoning models adapted to GPU
+    "qwen2.5:32b-instruct-q4_K_M",   # 32B reasoning model
+    "llama3.3:70b-instruct-q4_K_M",  # 70B reasoning model wiat for later install
 ]
 
 
