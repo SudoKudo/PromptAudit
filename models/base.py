@@ -1,5 +1,5 @@
 # models/base.py — Abstract base class for all model backends in Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # Every model backend (OllamaModel, HFModel, APIModel, etc.) inherits from this class.
 #

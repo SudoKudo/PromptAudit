@@ -1,5 +1,5 @@
 # models/hf_model.py — HuggingFace Transformers backend for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # This backend allows Code v2.0 to run LLMs directly through the HuggingFace
 # Transformers library (AutoModelForCausalLM + AutoTokenizer).

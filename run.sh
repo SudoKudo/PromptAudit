@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================
 # PromptAudit — Linux/Mac Launcher
-# Author: Steffen Camarato
+# Author: 
 # ==============================
 
 # Move to this script's directory

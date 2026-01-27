@@ -1,7 +1,5 @@
 # prompts/cot.py — PromptAudit v2.0: Chain-of-Thought (CoT) classification strategy
-# Author: Steffen Camarato — University of Central Florida
-# prompts/cot.py - Chain-of-Thought (CoT) strategy for Code v2.0
-# Author: Steffen Camarato - University of Central Florida
+
 # ---------------------------------------------------------------------
 # Purpose:
 #   This prompt strategy encourages the model to reason step by step

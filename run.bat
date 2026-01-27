@@ -1,7 +1,7 @@
 @echo off
 :: ==============================
 :: PromptAudit — Windows Launcher
-:: Author: Steffen Camarato
+:: Author: 
 :: ==============================
 
 :: Switch to the directory of this script

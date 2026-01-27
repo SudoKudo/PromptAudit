@@ -1,5 +1,5 @@
 # prompts/base_prompt.py — PromptAudit v2.0 (Unified Prompt Interface)
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # Purpose:
 #   This class defines a common interface that all prompt strategies inherit from.

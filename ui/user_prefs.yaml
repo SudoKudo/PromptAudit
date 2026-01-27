@@ -1,12 +1,11 @@
 datasets:
-- cvefixes_50
+- toy
 experiment_name: Computer Security Project
 experiment_notes: Full Expirement Run
 frequency_penalty: 0.0
 max_new_tokens: 229
 models:
-- qwen2.5:32b-instruct-q4_K_M
-- llama3.3:70b-instruct-q4_K_M
+- mistral:latest
 num_beams: 1
 presence_penalty: 0.0
 prompts:

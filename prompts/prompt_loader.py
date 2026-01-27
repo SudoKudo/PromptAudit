@@ -1,5 +1,5 @@
 # prompts/prompt_loader.py — PromptAudit v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 #
 # Purpose:
 #   Provide a single, well defined entry point for loading prompt strategies

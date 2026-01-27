@@ -1,5 +1,5 @@
 # code_datasets/sources.py — Tiny built-in samples for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # This module defines small, hard-coded example snippets for a few well-known
 # vulnerability datasets (CVEfixes, BigVul, Vul4J).

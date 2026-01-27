@@ -1,5 +1,5 @@
 # evaluation/report.py — PromptAudit v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 #
 # 💡 WHAT THIS FILE DOES
 # -----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ class HtmlReport:
         self.results = results
 
     def write(self, output_path, records, metric_keys, version="v2.0",
-              author="Steffen Camarato — University of Central Florida"):
+              author="ANON"):
         # Ensure the output folder exists so we can write the HTML file safely.
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 

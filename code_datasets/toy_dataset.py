@@ -1,5 +1,5 @@
 # code_datasets/toy_dataset.py — Local CSV toy dataset loader for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # This module loads a simple "toy" dataset from a local CSV file.
 # I use this for:

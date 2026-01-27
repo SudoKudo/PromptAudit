@@ -1,5 +1,5 @@
 # prompts/few_shot.py — PromptAudit v2.0: Few-Shot classification strategy
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # Purpose:
 #   This prompt strategy gives the model a couple of labeled examples first,

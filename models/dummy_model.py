@@ -1,5 +1,5 @@
 # models/dummy_model.py — Offline “fake” model for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # 🔹 Purpose:
 # This is my offline testing model — a no-API, no-network, instant-response model.

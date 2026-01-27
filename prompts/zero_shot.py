@@ -1,5 +1,5 @@
 # prompts/zero_shot.py — PromptAudit v2.0: Zero-Shot classification strategy
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # Purpose:
 #   ZeroShot is the simplest prompt strategy. It builds a single,

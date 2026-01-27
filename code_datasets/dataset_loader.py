@@ -1,5 +1,5 @@
 # code_datasets/loader.py — Glacier v2.0 (GUI-compatible dataset loader)
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # This module provides a unified interface for loading datasets in Glacier Code 2.0.
 # I designed it so the GUI, experiment runner, and CLI can all load datasets using

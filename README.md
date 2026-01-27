@@ -1,5 +1,5 @@
 # 🔍 PromptAudit — A Prompt Engineered Framework for AI-Driven Vulnerability Detection
-**Author:** Steffen Camarato — University of Central Florida  
+**Author:** Anon
 **Version:** v2.0 (Research Release)
 
 ---
@@ -298,7 +298,7 @@ The HTML report includes everything needed for citation and reproducibility.
 ## 📘 Citation (Suggested)
 
 ```
-Camarato, S. "PromptAudit: A Prompt-Engineered Framework for AI-Driven Vulnerability Detection," University of Central Florida (2025).
+ANON.
 ```
 ---
 
@@ -312,4 +312,4 @@ Camarato, S. "PromptAudit: A Prompt-Engineered Framework for AI-Driven Vulnerabi
 
 ---
 
-© 2025 Steffen Camarato — All Rights Reserved.
+© 2025 Anon — All Rights Reserved.

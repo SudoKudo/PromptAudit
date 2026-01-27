@@ -1,6 +1,6 @@
 def new_func():
     # ui/run_PromptAudit.py — Launcher for Code v2.0 Dashboard
-# Author: Steffen Camarato — University of Central Florida
+# Author: 
 # ---------------------------------------------------------------------
 # This file is the entry point for launching the "Code v2.0" dashboard.
 # Its only job is to create the main application window (the dashboard)

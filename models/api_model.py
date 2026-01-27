@@ -1,5 +1,5 @@
 # models/api_model.py — REST API backend model wrapper for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # This class lets Code v2.0 talk to ANY OpenAI-style text-generation API
 # (OpenAI, together.ai, compatible self-hosted servers, etc.).

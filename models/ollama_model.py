@@ -1,5 +1,5 @@
 # models/ollama_model.py — Ollama backend for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # This class provides local model inference through the Ollama runtime.
 #

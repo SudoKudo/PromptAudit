@@ -1,5 +1,5 @@
 # evaluation/label_parser.py for PromptAudit v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # Centralized parser for converting raw model output → SAFE / VULNERABLE / UNKNOWN.
 #

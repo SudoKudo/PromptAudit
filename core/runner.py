@@ -1,5 +1,5 @@
 # core/runner.py — PromptAudit v2.0 
-# Author: Steffen Camarato — University of Central Florida
+
 # Purpose: Orchestrates the full experiment lifecycle with self-consistency,
 # adaptive prompt strategies, and graceful stop behavior.
 #
@@ -429,7 +429,7 @@ class ExperimentRunner:
                 records,
                 metric_keys,
                 version="v2.0",
-                author="Steffen Camarato — University of Central Florida"
+                author="Anon"
             )
             self.progress(f"🌐 HTML report written to {html_path}")
 

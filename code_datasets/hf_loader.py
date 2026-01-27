@@ -1,5 +1,5 @@
 # code_datasets/hf_loader.py — Hugging Face dataset loader for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # This module handles loading large research datasets from the Hugging Face Hub
 # (e.g., CVEfixes, BigVul, Vul4J) and converting them into the unified format

@@ -1,5 +1,5 @@
 # prompts/self_consistency.py — PromptAudit v2.0: Adaptive Chain-of-Thought (CoT) + Self-Consistency classification strategy
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # Purpose:
 #   Self-Consistency strategy with Adaptive CoT behavior, rewritten for the

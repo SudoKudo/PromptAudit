@@ -1,5 +1,5 @@
 # models/loader.py — Glacier Code v2.0 (Unified Model Loader for GUI + CLI)
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # This file provides the central entry point for loading model backends.
 #

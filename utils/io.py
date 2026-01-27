@@ -1,5 +1,5 @@
 # core/io.py — Minimal filesystem helpers for Code v2.0
-# Author: Steffen Camarato — University of Central Florida
+
 # ---------------------------------------------------------------------
 # Purpose:
 #   This module provides a tiny utility to make sure one or more directories

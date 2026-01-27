@@ -1,5 +1,3 @@
-# Author: Yohan Hmaiti — University of Central Florida
-# ---------------------------------------------------------------------
 # Local CVEfixes dataset loader that reads from folder structure.
 # Each CVE has vulnerable (code_before) and fixed (code_after) versions.
 

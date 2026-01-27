@@ -1,6 +1,6 @@
 # ui/dashboard.py — PromptAudit Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-#         Adjusted by Yohan Hmaiti for reasoning models and GPU compatibility
+
+
 # ---------------------------------------------------------------------
 # Purpose:
 #   This file implements the main GUI dashboard for Code v2.0 using ttkbootstrap.
@@ -30,7 +30,7 @@ from core.runner import ExperimentRunner
 
 # --- Global constants / metadata ---------------------------------------------
 VERSION_TAG = "Prompt Audit 2.0"  # Shown in the window title for quick version ID
-AUTHOR = "Steffen Camarato — University of Central Florida"
+AUTHOR = "Anonymous"
 
 # Where user preferences and presets are stored on disk
 PREFS_PATH = "ui/user_prefs.yaml"

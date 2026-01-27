@@ -1,5 +1,5 @@
 # prompts/adaptive_cot.py — PromptAudit v2.0: Adaptive Chain-of-Thought (CoT) classification strategy
-# Author: Steffen Camarato — University of Central Florida
+
 # -------------------------------------------------------------------------
 # Purpose:
 #   Adaptive Chain-of-Thought (CoT) strategy that encourages the model to:
