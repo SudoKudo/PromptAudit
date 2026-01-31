@@ -29,6 +29,8 @@ class Metrics:
     TN: int = 0  # Predicted safe AND gold safe
     FP: int = 0  # Predicted vulnerable but gold safe
     FN: int = 0  # Predicted safe but gold vulnerable
+    Incorrect: int = 0 # Predicted unknown but gold safe
+    UNFN: int = 0 # Predicted vulnerable but gold vulnerable
 
     # ---------------------------
     # Derived performance metrics
@@ -37,6 +39,9 @@ class Metrics:
     Precision: float = 0.0
     Recall: float = 0.0
     F1: float = 0.0
+    Effective_F1: float = 0.0
+    Abstention: float = 0.0
+    Coverage: float = 0.0
 
     # ---------------------------
     # Count of unrecognized labels
@@ -49,11 +54,11 @@ class Metrics:
     # ---------------------------------------------------------------
     def add(self, gold: str, pred: str):
         """
-        Update TP, TN, FP, FN counts based on the gold label and the predicted label.
+        Update TP, TN, FP, FN, Incorrect, UNFN counts based on the gold label and the predicted label.
 
         Args:
             gold (str): True label ("safe" or "vulnerable").
-            pred (str): Model prediction ("safe", "vulnerable", or something else).
+            pred (str): Model prediction ("safe", "vulnerable", "unknown", or something else).
 
         Behavior:
             - If pred == "vulnerable":
@@ -62,6 +67,11 @@ class Metrics:
             - If pred == "safe":
                 * gold == "safe"       → TN
                 * gold == "vulnerable" → FN
+            - If pred == "Unknwon":
+                * gold == "safe"       → Incorrect
+                * gold == "vulnerable" → UNFN    
+
+
             - Anything else increments the "Unknown" counter.
         """
         if pred == "vulnerable":
@@ -76,9 +86,14 @@ class Metrics:
             else:
                 self.FN += 1
 
-        else:
+        elif pred == "Unknwon":
+            if gold == "safe":
+                self.Incorrect += 1
+            else:
+                self.UNFN += 1
+        # else:
             # Unexpected label — useful for debugging model outputs.
-            self.Unknown += 1
+        #    self.Unknown += 1
 
     # ---------------------------------------------------------------
     # Compute final metrics from accumulated confusion matrix values
@@ -88,10 +103,16 @@ class Metrics:
         Compute Accuracy, Precision, Recall, and F1 from the confusion matrix.
 
         Formulas:
-            Accuracy  = (TP + TN) / (TP + TN + FP + FN)
+            Accuracy  = (TP + TN) / (TP + TN + FP + FN + UNFN)
             Precision =  TP       / (TP + FP)
-            Recall    =  TP       / (TP + FN)
+            Recall    =  TP       / (TP + FN + UNFN)
             F1        =  2 * (Precision * Recall) / (Precision + Recall)
+            Abstention = (Incorrect + UNFN) / (TP + TN + FP + FN + UNFN + Incorrect) 
+            Coverage = 1 - Abstention
+            Effective_F1: F1 * Coverage
+ 
+    
+
 
         Notes:
             - All divisions are guarded to avoid ZeroDivisionError.
@@ -115,6 +136,24 @@ class Metrics:
             else 0.0
         )
 
+        # Abstention: The rate of missings
+        self.Abstention = (
+            ( self.Incorrect + self.Unknown )/ (self.TP + self.TN + self.FP + self.FN + self.Incorrect + self.UNFN)
+            if (self.TP + self.TN + self.FP + self.FN + self.Incorrect + self.UNFN)
+            else 0.0    
+        )
+
+        # Coverage: 1 - The rate of missings
+        self.Coverage = (
+            1 - self.Abstention   
+        )
+
+        # Effective F1: Done to evaluate model performance across multiple classes or datasets
+        self.Effective_F1 = (
+            self.F1 * self.Abstention
+        )
+        
+
     # ---------------------------------------------------------------
     # Export the metrics in a dictionary so the report can format them
     # ---------------------------------------------------------------
@@ -131,9 +170,13 @@ class Metrics:
             "TN": self.TN,
             "FP": self.FP,
             "FN": self.FN,
+            "Incorrect": self.Incorrect,
+            "UNFN": self.UNFN,
             "Accuracy": self.Accuracy,
             "Precision": self.Precision,
             "Recall": self.Recall,
             "F1": self.F1,
-            "Unknown": self.Unknown,
+            "Abstention Rate": self.Abstention,
+            "Coverage": self.Coverage,
+            "Effective F1": self.Effective_F1,
         }
