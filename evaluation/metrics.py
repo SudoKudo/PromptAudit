@@ -121,13 +121,13 @@ class Metrics:
         total = self.TP + self.TN + self.FP + self.FN
 
         # Guard: If no samples counted, accuracy should be 0.
-        self.Accuracy = (self.TP + self.TN) / total if total else 0.0
+        self.Accuracy = (self.TP + self.TN) / (self.TP + self.TN + self.FP + self.FN + self.UNFN) if (self.TP + self.TN + self.FP + self.FN + self.UNFN) else 0.0
 
         # Precision: How many predicted "vulnerable" were actually correct?
         self.Precision = self.TP / (self.TP + self.FP) if (self.TP + self.FP) else 0.0
 
         # Recall: How many gold "vulnerable" did we correctly identify?
-        self.Recall = self.TP / (self.TP + self.FN) if (self.TP + self.FN) else 0.0
+        self.Recall = self.TP / (self.TP + self.FN + self.UNFN) if (self.TP + self.FN + self.UNFN) else 0.0
 
         # F1: Harmonic mean of precision and recall.
         self.F1 = (
