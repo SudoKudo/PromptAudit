@@ -124,7 +124,7 @@ pip install -r requirements.txt
 Download: https://ollama.com/download
 
 
-After installing, open terminal and run:
+After installing, open terminal and run (if ollama is running skip this step as it will indicate this port is being used): 
 
 ```bat
 ollama serve
@@ -314,3 +314,4 @@ ANON.
 
 
 © 2025 Anon — All Rights Reserved.
+
