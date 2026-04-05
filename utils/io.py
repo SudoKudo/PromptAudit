@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # core/io.py — Minimal filesystem helpers for Code v2.0
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -12,6 +13,9 @@
 #   If a directory is already present, nothing happens.
 #   If it is missing, it is created (including any parent directories).
 
+=======
+"""Small filesystem helpers shared across PromptAudit modules."""
+>>>>>>> Stashed changes
 
 import os
 

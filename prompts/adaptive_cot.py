@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # prompts/adaptive_cot.py — PromptAudit v2.0: Adaptive Chain-of-Thought (CoT) classification strategy
 # Author: Steffen Camarato — University of Central Florida
 # -------------------------------------------------------------------------
@@ -17,6 +18,9 @@
 #
 #   This keeps the adaptive reasoning behavior inside the prompt text but
 #   centralizes all label parsing logic in evaluation.label_parser.
+=======
+"""Adaptive chain-of-thought prompt strategy for vulnerability classification."""
+>>>>>>> Stashed changes
 
 from .base_prompt import BasePrompt
 

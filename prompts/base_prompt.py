@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # prompts/base_prompt.py — PromptAudit v2.0 (Unified Prompt Interface)
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -22,9 +23,12 @@
 #   This lets simple strategies rely on the base template while giving more
 #   complex strategies (CoT, SelfConsistency, AdaptiveCoT) full control when needed.
 
+=======
+"""Base class shared by all PromptAudit prompt strategies."""
+>>>>>>> Stashed changes
 
 class BasePrompt:
-    """Base class for all prompt strategies in Code v2.0."""
+    """Base class for all prompt strategies in PromptAudit."""
 
     # Logical name for the strategy (used in configs / reporting).
     name = "base"
@@ -49,8 +53,8 @@ class BasePrompt:
            - Returns:
                A fully formatted prompt string with {code} filled in.
            - Use case:
-               When I want to inspect or log the prompt, or manage
-               model calls manually elsewhere.
+               Useful when the caller wants to inspect or log the prompt, or
+               manage model calls manually elsewhere.
 
         2) Model inference (template-based):
                apply(model, code, gen_cfg)
@@ -78,7 +82,7 @@ class BasePrompt:
                 If apply() is called with an unsupported argument pattern.
         """
         # ------------------------------------------------------------------
-        # Case 1: apply(code)  → just build a prompt
+        # Case 1: apply(code)  â†’ just build a prompt
         # ------------------------------------------------------------------
         if len(args) == 1:
             code = args[0]

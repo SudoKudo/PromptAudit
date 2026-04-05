@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # code_datasets/hf_loader.py — Hugging Face dataset loader for Glacier Code v2.0
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -16,17 +17,20 @@
 # without forcing a login every time the code runs.
 
 import os, subprocess
+=======
+"""Load PromptAudit datasets from the Hugging Face Hub and normalize sample rows."""
+
+import os
+import subprocess
+>>>>>>> Stashed changes
 from datasets import load_dataset
 
-import os, subprocess  # (Duplicate import is harmless; left as-is to avoid changing code.)
-
-# ✅ Try to import HfFolder from huggingface_hub (newer API)
-# I use HfFolder (when available) to check whether a token already exists.
+# Prefer HfFolder when it is available so token detection follows the
+# current Hugging Face client behavior.
 try:
     from huggingface_hub import HfFolder
 except ImportError:
-    # If huggingface_hub is not installed or HfFolder is missing,
-    # I fall back to manually checking token files on disk.
+    # Fall back to token-file checks when the helper is unavailable.
     HfFolder = None
 
 
@@ -44,7 +48,7 @@ def ensure_hf_login():
       - Backward compatible: supports older token locations.
       - Non-intrusive: if login is already set up, it quietly returns.
     """
-    # ✅ 1. Try new Hugging Face Hub token cache
+    # âœ… 1. Try new Hugging Face Hub token cache
     if HfFolder is not None:
         try:
             token = HfFolder.get_token()
@@ -55,7 +59,7 @@ def ensure_hf_login():
             # If anything goes wrong here, fall back to manual path checks.
             pass
 
-    # ✅ 2. Check old and new token locations
+    # âœ… 2. Check old and new token locations
     # Legacy path: older versions of the Hugging Face CLI stored the token here.
     legacy_path = os.path.expanduser("~/.huggingface/token")
     # Newer cache path: some setups use this cache-based location instead.
@@ -65,18 +69,18 @@ def ensure_hf_login():
     if os.path.exists(legacy_path) or os.path.exists(cache_path):
         return  # Token file found; no need to prompt again.
 
-    # ✅ 3. If not logged in, prompt once via CLI
+    # âœ… 3. If not logged in, prompt once via CLI
     # At this point, no token was found through any method, so I request login.
-    print("🔑 Hugging Face login required (first time only)…")
+    print("ðŸ”‘ Hugging Face login required (first time only)â€¦")
     try:
         # This calls the Hugging Face CLI to handle the login flow in the terminal.
         subprocess.run(["huggingface-cli", "login"], check=True)
     except Exception as e:
         # If the CLI login fails, raise a clear error message with guidance.
         raise RuntimeError(
-            "⚠️ Failed to log into Hugging Face. Run `huggingface-cli login` manually once."
+            "âš ï¸ Failed to log into Hugging Face. Run `huggingface-cli login` manually once."
         ) from e
-    
+
 
 def load_hf_dataset(name: str):
     """
@@ -128,6 +132,19 @@ def load_hf_dataset(name: str):
     # Use the `datasets` library to download/load the "train" split from HF.
     ds = load_dataset(repo, split="train")
 
+    def normalize_label(value) -> str:
+        """Map common HF label encodings into the project-wide SAFE/VULNERABLE scheme."""
+        if isinstance(value, str):
+            cleaned = value.strip().lower()
+        else:
+            cleaned = str(value).strip().lower()
+
+        if cleaned in {"1", "true", "vulnerable", "vuln", "unsafe"}:
+            return "VULNERABLE"
+        if cleaned in {"0", "false", "safe", "benign", "clean"}:
+            return "SAFE"
+        return cleaned.upper() or "UNKNOWN"
+
     # Convert the Hugging Face dataset rows into the unified structure expected by Code 2.0.
     samples = []
     for i, row in enumerate(ds):
@@ -142,11 +159,11 @@ def load_hf_dataset(name: str):
             # Priority:
             #   1. func_before (vulnerable function before the fix)
             #   2. code (generic code field)
-            "code": row.get("func_before", row.get("code", "")),
+            "code": row.get("func_before", row.get("code", row.get("func", ""))),
 
             # Normalize the label to uppercase string.
             # If "target" is missing, I default to "SAFE" to keep the label consistent.
-            "label": str(row.get("target", "SAFE")).upper()
+            "label": normalize_label(row.get("target", "SAFE")),
         })
 
     # Return the fully normalized list of samples.

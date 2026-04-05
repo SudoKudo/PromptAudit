@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # models/loader.py — Glacier Code v2.0 (Unified Model Loader for GUI + CLI)
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -15,6 +16,9 @@
 # The design is intentionally extensible — new backends (APIModel, HFModel)
 # can be registered here without touching the runner or GUI.
 
+=======
+"""Instantiate the configured model backend for a PromptAudit run."""
+>>>>>>> Stashed changes
 
 from .ollama_model import OllamaModel
 from .dummy_model import DummyModel
@@ -31,7 +35,7 @@ def load_model(cfg_or_name, gen_cfg):
                 The default backend is assumed to be "ollama".
             - If dict:
                 Expected fields:
-                    "backend": one of {"ollama", "dummy"}
+                    "backend": one of {"ollama", "dummy", "hf", "api"}
                     "name":    model name string
 
         gen_cfg (dict):
@@ -45,20 +49,26 @@ def load_model(cfg_or_name, gen_cfg):
 
     Returns:
         BaseModel:
-            An instantiated model backend object (OllamaModel or DummyModel).
+            An instantiated model backend object.
 
     Behavior:
-        - If backend is unknown → warns and falls back to DummyModel.
+        - Backend-specific model settings in cfg_or_name override gen_cfg.
+        - Unknown backends raise ValueError instead of silently changing the run.
         - Ensures GUI and CLI both use identical loading logic.
     """
 
     # ------------------------------------------------------------------
     # Normalize input — whether dict or string
     # ------------------------------------------------------------------
+    effective_gen_cfg = dict(gen_cfg or {})
+
     if isinstance(cfg_or_name, dict):
         # When a full config dict is provided (from GUI or config files)
-        backend = cfg_or_name.get("backend", "ollama")
+        backend = str(cfg_or_name.get("backend", "ollama")).strip().lower()
         name = cfg_or_name.get("name") or "unnamed"
+        for key, value in cfg_or_name.items():
+            if key not in {"backend", "name"}:
+                effective_gen_cfg[key] = value
 
     else:
         # When the user just passes a string (simplest case)
@@ -70,15 +80,19 @@ def load_model(cfg_or_name, gen_cfg):
     # ------------------------------------------------------------------
     if backend == "ollama":
         # Local model served through Ollama daemon
-        return OllamaModel(name, gen_cfg)
+        return OllamaModel(name, effective_gen_cfg)
 
     elif backend == "dummy":
         # Pure offline model for rapid testing
-        return DummyModel(name or "dummy", gen_cfg)
+        return DummyModel(name or "dummy", effective_gen_cfg)
+
+    elif backend in {"hf", "huggingface"}:
+        from .hf_model import HFModel
+        return HFModel(name, effective_gen_cfg)
+
+    elif backend in {"api", "openai"}:
+        from .api_model import APIModel
+        return APIModel(name, effective_gen_cfg)
 
     else:
-        # ------------------------------------------------------------------
-        # Graceful fallback for unsupported backends
-        # ------------------------------------------------------------------
-        print(f"[WARN] Unknown backend '{backend}', defaulting to DummyModel.")
-        return DummyModel(name or "unknown", gen_cfg)
+        raise ValueError(f"Unknown backend: {backend}")

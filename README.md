@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # 🔍 PromptAudit — A Prompt Engineered Framework for AI-Driven Vulnerability Detection
 **Author:** Steffen Camarato — University of Central Florida  
 **Version:** v2.0 (Research Release)
@@ -313,3 +314,289 @@ Camarato, S. "PromptAudit: A Prompt-Engineered Framework for AI-Driven Vulnerabi
 ---
 
 © 2025 Steffen Camarato — All Rights Reserved.
+=======
+# PromptAudit
+
+PromptAudit is a local research harness for measuring prompt sensitivity in LLM-based vulnerability classification. It keeps the dataset, model backend, decoding configuration, and reporting pipeline fixed while varying prompt strategy, output protocol, and parser mode.
+
+The project is aimed at controlled experiments rather than production vulnerability scanning. The default workflow is a GUI-driven run that writes a timestamped artifact directory for each experiment.
+
+## What it does
+
+- Runs binary `SAFE` / `VULNERABLE` classification experiments across datasets, models, and prompt strategies
+- Supports prompt ablations such as:
+  - `zero_shot`
+  - `few_shot`
+  - `cot`
+  - `adaptive_cot`
+  - `self_consistency`
+  - `self_verification`
+- Supports protocol and parser ablations:
+  - output protocol: `verdict_first`, `verdict_last`
+  - parser mode: `strict`, `structured`, `full`
+- Lets you filter completed results by language in the HTML report and recompute metrics from the saved per-sample predictions
+- Generates per-run CSV and HTML artifacts
+- Supports pause, resume, and resume-from-checkpoint
+- Writes partial reports when a run is paused or stopped
+
+## Project layout
+
+```text
+PromptAudit/
+|-- config.yaml
+|-- requirements.txt
+|-- run_PromptAudit.py
+|-- code_datasets/
+|   |-- dataset_loader.py
+|   |-- hf_loader.py
+|   |-- toy_dataset.py
+|   `-- _local_cve_dataset_loader.py
+|-- core/
+|   `-- runner.py
+|-- evaluation/
+|   |-- label_parser.py
+|   |-- metrics.py
+|   |-- output_protocol.py
+|   `-- report.py
+|-- models/
+|   |-- api_model.py
+|   |-- base.py
+|   |-- dummy_model.py
+|   |-- hf_model.py
+|   |-- model_loader.py
+|   `-- ollama_model.py
+|-- prompts/
+|   |-- adaptive_cot.py
+|   |-- base_prompt.py
+|   |-- cot.py
+|   |-- few_shot.py
+|   |-- prompt_loader.py
+|   |-- self_consistency.py
+|   |-- self_verification.py
+|   `-- zero_shot.py
+|-- ui/
+|   `-- dashboard.py
+|-- utils/
+|   |-- io.py
+|   `-- power.py
+`-- results/
+    `-- runs/
+```
+
+## Installation
+
+### 1. Create a virtual environment
+
+Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+macOS / Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 2. Install Python dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Notes:
+
+- `tkinter` is not installed from `requirements.txt`. It is bundled with standard Python on Windows and macOS.
+- On Linux you may need the system package for Tk, such as `python3-tk`.
+
+### 3. Optional backends
+
+#### Ollama
+
+Install Ollama, start the local service, and pull the models you want to test.
+
+Example:
+
+```bash
+ollama serve
+ollama pull mistral:latest
+ollama pull gemma:7b
+ollama pull codellama:7b-instruct
+ollama pull deepseek-coder:6.7b-instruct
+ollama pull falcon:7b-instruct
+```
+
+#### Hugging Face datasets or models
+
+If you want to download Hugging Face datasets or run Hugging Face model ids locally:
+
+```bash
+huggingface-cli login
+```
+
+## Running PromptAudit
+
+Launch the GUI:
+
+```bash
+python run_PromptAudit.py
+```
+
+From the dashboard you can choose:
+
+- one or more models
+- one or more prompt strategies
+- one or more datasets
+- output protocols and parser modes for ablation runs
+- generation and performance settings
+
+## Dashboard layout
+
+The GUI is split into two panes:
+
+- `Experiment Control` on the left
+- `Run Monitor` on the right
+
+The left pane is organized so the controls you change most often sit near the top:
+
+- `Experiment Metadata`
+  - `Name`: friendly label used in the run folder and report
+  - `Notes`: free-form notes saved with your preferences
+- `Presets`
+  - save the current dashboard state to a preset file
+  - load a previously saved preset
+- `Run Controls`
+  - `Run Experiment`: start a new run
+  - `Pause`: pause after the current sample finishes
+  - `Resume`: continue the active paused run
+  - `Stop`: stop at a safe boundary and write partial artifacts
+  - `Resume Saved Run`: restore the latest checkpoint from disk
+- selection blocks
+  - `Models`
+  - `Datasets`
+  - `Prompt Strategies`
+  - `Ablations`
+- tuning blocks
+  - `Generation Settings`
+  - `Run Performance`
+
+The right pane shows:
+
+- current progress
+- runtime
+- sample counter
+- live log output
+- `Open Report` for the latest HTML report for the active run
+
+## GUI setting reference
+
+### Models
+
+Choose one or more configured model entries. Each selected model is combined with every selected prompt, dataset, output protocol, and parser mode.
+
+### Prompt Strategies
+
+- `zero_shot`: direct classification without examples
+- `few_shot`: classification with a small number of examples
+- `cot`: reasoning-style prompt
+- `adaptive_cot`: a more guided reasoning prompt
+- `self_consistency`: multiple reasoning samples with majority voting
+- `self_verification`: reason, check the reasoning, then issue a final verdict
+
+### Datasets
+
+Choose one or more datasets to evaluate. The `toy` dataset is a 25-sample mixed-language function-level set with file-path handling, command execution, SQL, archive extraction, and template/rendering cases so quick smoke tests still look closer to the CVE-style code snippets. CVE-linked sets are better for real experiments.
+
+### Ablations
+
+- `Output Protocols`
+  - `verdict_first`: force the verdict at the start of the response
+  - `verdict_last`: let the model reason first and put the verdict at the end
+- `Parser Modes`
+  - `strict`: accept only the exact expected verdict position
+  - `structured`: accept strict output plus explicit verdict phrases
+  - `full`: structured parsing plus broader fallback rules
+
+### Generation Settings
+
+- `Temperature`: randomness of sampling
+- `Top-P`: nucleus sampling cutoff
+- `Top-K`: sample only from the top K tokens
+- `Max New Tokens`: maximum generated length
+- `Repetition Penalty`: discourages repeated phrasing
+- `Frequency Penalty`: reduces repeated token reuse
+- `Presence Penalty`: pushes the model toward new tokens/topics
+- `Num Beams`: beam width for Hugging Face decoding
+- `Seed`: random seed for reproducible runs
+- `Stop Sequences`: comma-separated stop strings
+- `SC Samples`: number of self-consistency votes when that prompt strategy is selected
+
+### Run Performance
+
+- `Verbose debug logging`: log raw prompts and outputs; slower and noisier
+- `Checkpoint every N samples`: sample-based checkpoint cadence
+- `Checkpoint every N seconds`: time-based checkpoint cadence
+- `Progress update every N samples`: throttles progress/log updates
+- `SC vote delay (seconds)`: optional delay between self-consistency votes
+- `Prevent system sleep during runs`: keep the machine awake while a run is active
+- `Keep display awake too`: also prevent the monitor from sleeping
+
+## Outputs
+
+Every run writes a new artifact directory under:
+
+```text
+results/runs/<timestamp>_<experiment_name>/
+```
+
+Typical contents:
+
+- `metrics.csv`
+- `report.html`
+- `records.jsonl`
+- `checkpoint.json`
+- `predictions/*.csv`
+
+This means rerunning an experiment creates a new report and new CSV files instead of overwriting a previous run.
+
+The HTML report also supports language-level slicing. Selecting a language in the report filters each record down to predictions from that language only, then recomputes the displayed metrics, charts, and leaderboard from those per-sample outcomes.
+
+## Pause and resume
+
+The GUI supports:
+
+- `Pause`: finishes the current sample, writes a checkpoint, and writes partial artifacts
+- `Resume`: continues the active paused run
+- `Resume Saved Run`: restores the latest resumable checkpoint from disk
+- `Stop`: stops after the current safe boundary and writes partial artifacts
+
+During an active run, PromptAudit can also prevent the machine from sleeping if that option is enabled in the performance settings.
+
+## Suggested quick test
+
+For a smoke test:
+
+1. Launch the GUI
+2. Select:
+   - model: `mistral:latest`
+   - prompt: `zero_shot`
+   - dataset: `toy`
+   - output protocol: `verdict_first`
+   - parser mode: `full`
+3. Keep the default generation settings
+4. Run the experiment
+5. Open the generated report from the run directory
+
+## Notes on scope
+
+PromptAudit is built for controlled prompt-sensitivity studies. It does not solve known benchmark problems such as:
+
+- patch-derived label noise in CVE-linked datasets
+- missing runtime context for snippet-level vulnerability decisions
+- transferability of results from smaller open models to stronger proprietary systems
+
+Those issues need to be discussed in the paper and, where possible, addressed through additional experiments or tighter subsets.
+>>>>>>> Stashed changes

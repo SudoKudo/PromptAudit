@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # code_datasets/loader.py — Glacier v2.0 (GUI-compatible dataset loader)
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -10,11 +11,38 @@
 #   - A configuration dictionary (source/name/path)
 #
 # The goal is to allow maximum flexibility while keeping the API extremely simple.
+=======
+"""Resolve dataset names and load samples from local or Hugging Face sources."""
+>>>>>>> Stashed changes
 
 import yaml
 from pathlib import Path
+from functools import lru_cache
 from .toy_dataset import load_toy
 from ._local_cve_dataset_loader import load_cvefixes_dataset
+
+
+def _normalize_source(src):
+    """Normalize dataset source aliases to the internal names used by the loader."""
+    source = str(src or "local").strip().lower()
+    aliases = {
+        "hf": "huggingface",
+        "huggingface": "huggingface",
+        "local": "local",
+    }
+    return aliases.get(source, source)
+
+
+@lru_cache(maxsize=1)
+def _load_dataset_config():
+    """Cache config.yaml dataset metadata so repeated dataset loads avoid rereading YAML."""
+    config_path = Path(__file__).parent.parent / "config.yaml"
+    with open(config_path, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f) or {}
+    return {
+        d["name"]: d for d in config.get("datasets", [])
+        if isinstance(d, dict) and d.get("name")
+    }
 
 
 def load_dataset(cfg_or_name, progress=lambda m: None):
@@ -107,21 +135,14 @@ def load_dataset(cfg_or_name, progress=lambda m: None):
     #     # If the caller specifies a source we do not support, raise an error.
     #     raise ValueError(f"Unknown dataset source: {src}")
     
-    # ------------------------------------------------------------------
-    # Load config.yaml to get dataset paths
-    # ------------------------------------------------------------------
-    config_path = Path(__file__).parent.parent / "config.yaml"
-    with open(config_path, 'r', encoding='utf-8') as f:
-        config = yaml.safe_load(f)
-    
-    datasets_config = {d['name']: d for d in config.get('datasets', [])}
+    datasets_config = _load_dataset_config()
 
     # ------------------------------------------------------------------
     # Normalize input (handle string vs. dict configuration)
     # ------------------------------------------------------------------
     if isinstance(cfg_or_name, dict):
         # Extract source, name, and optional custom path.
-        src = cfg_or_name.get("source", "local")
+        src = _normalize_source(cfg_or_name.get("source", "local"))
         name = cfg_or_name.get("name", "unknown")
         path = cfg_or_name.get("path")
     else:
@@ -131,7 +152,7 @@ def load_dataset(cfg_or_name, progress=lambda m: None):
         # Look up the dataset in config to get its path and source
         if name in datasets_config:
             dataset_info = datasets_config[name]
-            src = dataset_info.get("source", "local")
+            src = _normalize_source(dataset_info.get("source", "local"))
             path = dataset_info.get("path")
         else:
             # Fallback for unknown datasets

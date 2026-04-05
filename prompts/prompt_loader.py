@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # prompts/prompt_loader.py — PromptAudit v2.0
 # Author: Steffen Camarato — University of Central Florida
 #
@@ -9,12 +10,16 @@
 #
 #   This keeps all strategy wiring in one place and avoids scattering imports
 #   across the codebase.
+=======
+"""Resolve prompt strategy names to their Python implementations."""
+>>>>>>> Stashed changes
 
 from .zero_shot import ZeroShot
 from .few_shot import FewShot
 from .cot import CoT
 from .adaptive_cot import AdaptiveCoT
 from .self_consistency import SelfConsistency
+from .self_verification import SelfVerification
 
 
 # Internal registry mapping human readable names to strategy classes.
@@ -31,6 +36,7 @@ _PROMPT_REGISTRY = {
     "cot": CoT,
     "adaptive_cot": AdaptiveCoT,
     "self_consistency": SelfConsistency,
+    "self_verification": SelfVerification,
 }
 
 

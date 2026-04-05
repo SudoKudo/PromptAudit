@@ -1,21 +1,4 @@
-# generate_realistic_fake_report.py
-# Realistic fake report generator for testing evaluation/report.py (Glacier UI / Code 2.0)
-#
-# I use this script to generate a fully-populated, realistic-looking HTML report
-# without having to run the full experiment pipeline. It feeds synthetic data
-# into HtmlReport so I can visually debug:
-#   - Tables
-#   - Charts
-#   - Filters
-#   - Leaderboards
-#   - Export buttons
-#
-# It produces grouped records (one per model+prompt+dataset combo), each with:
-#   - params (experiment settings)
-#   - aggregate metrics: TP, TN, FP, FN, Accuracy, Precision, Recall, F1
-#   - predictions: list of per-sample dicts {id, language, pred, gold, confidence}
-#
-# Output: results/fake_report.html (uses evaluation.report.HtmlReport)
+"""Generate synthetic experiment output for report-development work."""
 
 import os
 import sys
@@ -55,7 +38,7 @@ MODELS = [
     "falcon:7b-instruct",
 ]
 
-# Prompting strategies used in Code 2.0.
+# Prompting strategies used in PromptAudit.
 PROMPTS = [
     "zero_shot",
     "few_shot",
@@ -68,7 +51,7 @@ PROMPTS = [
 LANGS = ["Python", "C", "C++", "Java", "JS"]
 
 # Realistic priors for plausibility
-# I use these to nudge metrics so some models/prompts look slightly better.
+# Small priors keep the synthetic output visually plausible.
 MODEL_PRIOR = {
     "gemma:7b-instruct": 0.84,
     "codellama:7b-instruct": 0.82,
@@ -83,10 +66,10 @@ PROMPT_BONUS = {
     "adaptive_cot": 0.025,
 }
 DATASET_DIFFICULTY = {
-    # Positive values make the dataset “easier” (higher expected performance).
+    # Positive values make the dataset â€œeasierâ€ (higher expected performance).
     "toy": +0.03,
     "synthetic-small": +0.01,
-    # Negative values make the dataset “harder”.
+    # Negative values make the dataset â€œharderâ€.
     "realworld-v1": -0.02,
     "realworld-v2": -0.03,
     "mixed-benchmark": -0.01,
@@ -138,7 +121,7 @@ def make_combo_records(n_samples=20, vulnerable_prevalence=0.35):
             confidence # pseudo probability/confidence value
         }
 
-    I use this structure to closely match what the real experiment runner produces,
+    The structure mirrors the real experiment runner output closely,
     so that the HTML report can be tested as if it were running on real results.
     """
     records = []
@@ -256,7 +239,7 @@ def make_combo_records(n_samples=20, vulnerable_prevalence=0.35):
                         "sc_samples": 5,
                         "seed": 42,
                         "stop_sequences": ["SAFE", "VULNERABLE"],
-                        "experiment_name": "Demo: Glacier realistic fake",
+                        "experiment_name": "Demo: PromptAudit sample report",
                         "experiment_notes": "Auto-generated realistic demo data for report UI testing",
                         # Timestamp of when the data was generated (UTC, ISO-8601).
                         "generated_at": datetime.utcnow().isoformat() + "Z"
@@ -293,7 +276,7 @@ def main():
         records=records,
         metric_keys=["TP", "TN", "FP", "FN", "Accuracy", "Precision", "Recall", "F1"],
         version="v6.8-fakegen",
-        author="Steffen Camarato — University of Central Florida"
+        author="Steffen Camarato â€” University of Central Florida"
     )
 
     print(f"[INFO] Fake report written to: {out_path} (records: {len(records)})")

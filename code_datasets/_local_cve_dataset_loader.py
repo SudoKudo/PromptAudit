@@ -1,12 +1,19 @@
+<<<<<<< Updated upstream
 # Author: Yohan Hmaiti — University of Central Florida
 # ---------------------------------------------------------------------
 # Local CVEfixes dataset loader that reads from folder structure.
 # Each CVE has vulnerable (code_before) and fixed (code_after) versions.
 
+=======
+"""Load local CVE patch datasets from the repository folder layout."""
+>>>>>>> Stashed changes
 
 from pathlib import Path
 import re
-from tqdm import tqdm
+
+
+README_LINE_RE = re.compile(r"\s+(\d+)\.\s+(.+)")
+BEFORE_FILE_RE = re.compile(r"(\d+)_before_")
 
 def load_cvefixes_dataset(source_path: str = None):
     """
@@ -77,7 +84,7 @@ def load_cvefixes_dataset(source_path: str = None):
     
     cve_folders = sorted([f for f in source_dir.iterdir() if f.is_dir()])
     
-    for cve_folder in tqdm(cve_folders, desc="Loading CVEfixes samples", unit="CVE"):
+    for cve_folder in cve_folders:
         cve_id = cve_folder.name
         readme_path = cve_folder / "README.txt"
         original_filenames = {}
@@ -95,7 +102,7 @@ def load_cvefixes_dataset(source_path: str = None):
                 # Use errors='replace' to handle encoding issues gracefully
                 readme_content = readme_path.read_text(encoding='utf-8', errors='replace')
                 for line in readme_content.split('\n'):
-                    match = re.match(r'\s+(\d+)\.\s+(.+)', line)
+                    match = README_LINE_RE.match(line)
                     if match:
                         file_num = int(match.group(1))
                         filename = match.group(2).strip()
@@ -106,7 +113,7 @@ def load_cvefixes_dataset(source_path: str = None):
         before_files = sorted(cve_folder.glob('*_before_*.txt'))
         
         for before_file in before_files:
-            match = re.match(r'(\d+)_before_', before_file.name)
+            match = BEFORE_FILE_RE.match(before_file.name)
             if not match:
                 continue
             
@@ -133,7 +140,7 @@ def load_cvefixes_dataset(source_path: str = None):
                         "label": "VULNERABLE"
                     })
                     sample_id += 1
-            except Exception as e:
+            except Exception:
                 # Skip files that can't be read
                 pass
             
@@ -153,7 +160,7 @@ def load_cvefixes_dataset(source_path: str = None):
                             "label": "SAFE"
                         })
                         sample_id += 1
-            except Exception as e:
+            except Exception:
                 # Skip files that can't be read
                 pass
     

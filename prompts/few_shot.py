@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # prompts/few_shot.py — PromptAudit v2.0: Few-Shot classification strategy
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -16,6 +17,9 @@
 #
 #   This keeps label semantics centralized and ensures consistent behavior
 #   across ZeroShot, FewShot, CoT, AdaptiveCoT, and SelfConsistency.
+=======
+"""Few-shot prompt strategy with built-in labeled examples."""
+>>>>>>> Stashed changes
 
 from .base_prompt import BasePrompt
 

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # code_datasets/sources.py — Tiny built-in samples for Glacier Code v2.0
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -16,6 +17,9 @@
 #       "label": str     # "VULNERABLE" or "SAFE"
 #   }
 
+=======
+"""Small in-memory sample sets used for smoke tests and demos."""
+>>>>>>> Stashed changes
 
 def load_cvefixes():
     """
@@ -40,8 +44,8 @@ def load_bigvul():
     Return a tiny, hard-coded subset shaped like BigVul samples.
 
     Note:
-        I use single quotes for the Python string so I can keep the "%s"
-        format specifier inside the code exactly as it would appear in C.
+        The string literal keeps the "%s" placeholder intact so the example
+        still resembles the original C formatting pattern.
     """
     return [
         # Vulnerable pattern: sprintf with user-controlled input and no bounds checking.

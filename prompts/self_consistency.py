@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # prompts/self_consistency.py — PromptAudit v2.0: Adaptive Chain-of-Thought (CoT) + Self-Consistency classification strategy
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -19,109 +20,124 @@
 #       - Return the MAJORITY label ("safe"/"vulnerable") or "unknown"
 #
 #   All SAFE/VULNERABLE logic is centralized in evaluation.label_parser.
+=======
+"""Self-consistency prompt strategy that votes across protocol-aware samples."""
 
-import time, collections
+import time
+from collections import Counter
+>>>>>>> Stashed changes
+
 from .base_prompt import BasePrompt
-from evaluation.label_parser import parse_verdict
+from evaluation.label_parser import parse_verdict_details
+from evaluation.output_protocol import build_output_instruction
 
 
 class SelfConsistency(BasePrompt):
-    """Self-Consistency with integrated Adaptive-CoT behavior."""
+    """Self-consistency that parses each vote with the active protocol and parser."""
 
-    name = "self_consistency"  # Logical name for this strategy, used in configs and reports.
-    returns_label = True  # Signals to runner: this strategy returns a FINAL label, not a prompt
+    name = "self_consistency"
+    returns_label = True
 
-
-    # Phase 1: direct minimal classification templates
     direct_templates = [
         "You are a security auditor. Classify this code as SAFE or VULNERABLE.\n\n{code}\n\nAnswer:",
-        "Determine if this code is SAFE or VULNERABLE.\n\n{code}\n\nLabel:"
+        "Determine if this code is SAFE or VULNERABLE.\n\n{code}\n\nLabel:",
     ]
 
-    # Phase 2: reasoning templates (fallback)
     reasoning_templates = [
         "You are an expert code auditor. Think step-by-step about vulnerabilities.\n\n{code}\n\nReasoning:\n1) ",
-        "Analyze carefully and consider all potential risks.\n\n{code}\n\nAnalysis:\n1) "
+        "Analyze carefully and consider all potential risks.\n\n{code}\n\nAnalysis:\n1) ",
     ]
 
     def apply(self, model, code, gen_cfg):
-        """
-        Run multiple adaptive samples and return majority binary classification.
+        """Fallback entry point used when no ablation context is supplied."""
+        result = self.apply_with_context(model, code, gen_cfg)
+        return result["label"]
 
-        Args:
-            model:
-                Model backend that implements `generate(prompt: str) -> str`.
-            code (str):
-                Code snippet to classify.
-            gen_cfg (dict):
-                Generation configuration dict. Relevant key:
-                    - "sc_samples": number of self-consistency samples to draw.
-                Other fields (temperature, etc.) are used by the model backend.
-
-        Returns:
-            str:
-                - "safe" or "vulnerable" based on majority vote among valid outputs.
-                - "unknown" if no valid SAFE/VULNERABLE labels are obtained.
-
-        Note:
-            Unlike other strategies, this one returns the FINAL label string,
-            not raw model output. The runner must respect returns_label=True.
-        """
-
-        n = int(gen_cfg.get("sc_samples", 5))
+    def apply_with_context(
+        self,
+        model,
+        code,
+        gen_cfg,
+        *,
+        output_protocol="verdict_first",
+        parser_mode="full",
+    ):
+        """Run multiple votes and return a structured final label."""
+        num_votes = int(gen_cfg.get("sc_samples", 5))
+        vote_delay = max(0.0, float(gen_cfg.get("sc_vote_delay_seconds", 0.0)))
         votes = []
+        unknown_votes = 0
 
-        for _ in range(n):
-            # --- Phase 1: attempt direct fast classification
-            raw = self._generate_from_templates(model, code, gen_cfg, self.direct_templates)
-            label = parse_verdict(raw, model_name=getattr(model, "name", "model"))
+        for _ in range(num_votes):
+            details = self._generate_vote(
+                model,
+                code,
+                gen_cfg,
+                self.direct_templates,
+                output_protocol,
+                parser_mode,
+            )
+            if details["label"] == "unknown":
+                details = self._generate_vote(
+                    model,
+                    code,
+                    gen_cfg,
+                    self.reasoning_templates,
+                    output_protocol,
+                    parser_mode,
+                )
 
-            if label == "unknown":
-                # --- Phase 2: fallback to reasoning templates
-                raw = self._generate_from_templates(model, code, gen_cfg, self.reasoning_templates)
-                label = parse_verdict(raw, model_name=getattr(model, "name", "model"))
+            label = details["label"]
+            if label in {"safe", "vulnerable"}:
+                votes.append((label, details.get("tier") or "unknown"))
+            else:
+                unknown_votes += 1
 
-            # Record only valid binary labels as votes.
-            if label in ("safe", "vulnerable"):
-                votes.append(label)
-
-            # Small delay to avoid hammering the backend (API/Ollama friendliness).
-            time.sleep(0.1)
+            if vote_delay:
+                time.sleep(vote_delay)
 
         if not votes:
-            return "unknown"
+            return {
+                "label": "unknown",
+                "parse_tier": "sc_all_unknown",
+                "vote_counts": {},
+                "valid_votes": 0,
+                "unknown_votes": unknown_votes or num_votes,
+            }
 
-        # Majority voting: take the most frequent label among votes.
-        return collections.Counter(votes).most_common(1)[0][0]
+        label_counts = Counter(label for label, _tier in votes)
+        winning_label, _ = label_counts.most_common(1)[0]
+        winning_tiers = [tier for label, tier in votes if label == winning_label]
+        winning_tier = Counter(winning_tiers).most_common(1)[0][0] if winning_tiers else "unknown"
 
-    def _generate_from_templates(self, model, code, gen_cfg, templates):
-        """
-        Internal helper — try multiple templates and return the first non-empty
-        RAW model output.
+        return {
+            "label": winning_label,
+            "parse_tier": f"sc_vote_{winning_tier}",
+            "vote_counts": dict(label_counts),
+            "valid_votes": len(votes),
+            "unknown_votes": unknown_votes,
+        }
 
-        Args:
-            model:
-                Model backend with `generate(prompt: str) -> str`.
-            code (str):
-                Code snippet to embed into each template.
-            gen_cfg (dict):
-                Generation configuration (kept for interface consistency).
-            templates (list[str]):
-                List of prompt templates to try, each containing {code}.
-
-        Returns:
-            str:
-                The first non-empty raw output from model.generate, or an
-                empty string if all attempts fail.
-        """
+    def _generate_vote(self, model, code, gen_cfg, templates, output_protocol, parser_mode):
+        """Generate one vote using the active output protocol and parser mode."""
+        instruction = build_output_instruction(output_protocol)
         for tpl in templates:
-            # Build the full prompt for this code snippet.
-            prompt = tpl.format(code=code)
+            prompt = tpl.format(code=code).rstrip() + instruction
+            raw = super().apply(model, prompt, gen_cfg, raw_prompt=True)
+            if not raw:
+                continue
+            details = parse_verdict_details(
+                raw,
+                model_name=getattr(model, "name", "model"),
+                mode=parser_mode,
+                output_protocol=output_protocol,
+            )
+            if details["label"] != "unknown":
+                return details
 
-            # Use BasePrompt.apply in raw_prompt mode so we send this prompt
-            # directly to the model without wrapping it in BasePrompt.template.
-            result = super().apply(model, prompt, gen_cfg, raw_prompt=True)
-            if result:
-                return result
-
-        return ""
+        return {
+            "label": "unknown",
+            "tier": "unknown",
+            "parser_mode": parser_mode,
+            "output_protocol": output_protocol,
+        }

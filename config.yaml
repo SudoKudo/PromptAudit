@@ -14,7 +14,42 @@
 # ---------------------------------------------------------
 # 🧪 Debug / Logging Flags
 # ---------------------------------------------------------
-debug_raw_outputs: true  # Set to true to log raw prompts and model outputs
+debug_raw_outputs: false  # Enable only when diagnosing prompt/output issues; it slows long runs and floods logs
+
+# ---------------------------------------------------------
+# 🚀 Performance Controls
+# These reduce avoidable overhead in long runs without
+# changing the underlying model outputs.
+# ---------------------------------------------------------
+performance:
+  # Reuse backend objects across prompt/protocol/parser combos
+  # within a single run. This especially helps HF models.
+  cache_models: true
+
+  # Prompt objects are lightweight, but caching avoids repeated imports.
+  cache_prompts: true
+
+  # Checkpoint progress periodically instead of rewriting checkpoint.json
+  # after every sample.
+  checkpoint_every_n_samples: 10
+  checkpoint_every_seconds: 15.0
+
+  # Throttle GUI/log progress updates on large runs.
+  progress_every_n_samples: 10
+
+  # Keep the machine awake while an active run is executing.
+  # On Windows this prevents system sleep; the display may still sleep
+  # unless keep_display_awake is also enabled.
+  prevent_system_sleep: true
+  keep_display_awake: false
+
+  # Optional pacing between self-consistency votes.
+  # Keep at 0 locally unless a backend needs throttling.
+  sc_vote_delay_seconds: 0.0
+
+  # Ask Ollama to keep loaded models warm between requests/combos.
+  # This can reduce repeated model load latency on long local runs.
+  ollama_keep_alive: 30m
 
 # ---------------------------------------------------------
 # ⚙️ Generation Configuration
@@ -89,6 +124,9 @@ output:
   # Interactive HTML report (charts, tables, filters).
   report_html: results/report.html
 
+  # Each run gets its own timestamped artifact folder under this root.
+  run_root: results/runs
+
 # ---------------------------------------------------------
 # 🧱 Model Definitions
 # Each entry describes one model that can be selected in
@@ -96,7 +134,7 @@ output:
 # HF model id, and “backend” controls which loader is used.
 # ---------------------------------------------------------
 models:
-  # Local Ollama models
+  # Local Ollama models used in the paper's controlled study
   - name: mistral:latest
     backend: ollama
 
@@ -113,19 +151,6 @@ models:
   - name: deepseek-coder:6.7b-instruct
     backend: ollama
 
-  - name: llama3.3:70b-instruct-q4_K_M
-    backend: ollama
-
-  - name: qwen2.5:32b-instruct-q4_K_M
-    backend: ollama
-
-  # Hugging Face (transformers) models
-  - name: gemma-7b
-    backend: hf
-
-  - name: mistralai/Mistral-7B-Instruct-v0.2
-    backend: hf
-
 # ---------------------------------------------------------
 # 💬 Prompt Strategies
 # Each string here maps to a prompt implementation under
@@ -138,6 +163,18 @@ prompts:
   - cot              # Chain-of-thought style reasoning
   - adaptive_cot     # Chooses when to use CoT based on context
   - self_consistency # Multiple sampled chains with voting
+  - self_verification # Adds a self-check / revision step before the final verdict
+
+# ---------------------------------------------------------
+# 🧪 Ablation Controls
+# These define which protocol/parser variants the GUI can
+# expose and which ones are selected by default.
+# ---------------------------------------------------------
+ablations:
+  available_output_protocols: [verdict_first, verdict_last]
+  default_output_protocols: [verdict_first]
+  available_parser_modes: [strict, structured, full]
+  default_parser_modes: [full]
 
 # ---------------------------------------------------------
 # 💾 Datasets
@@ -145,7 +182,7 @@ prompts:
 # code_datasets/dataset_loader.py (e.g., “toy”, “cvefixes”).
 # ---------------------------------------------------------
 datasets:
-  # Simple CSV-based toy dataset for debugging / smoke tests.
+  # Small mixed-language function-level dataset for smoke tests and demos.
   - name: toy
     source: local
     path: data/toy.csv
@@ -186,7 +223,7 @@ datasets:
 # must provide these keys.
 # ---------------------------------------------------------
 metrics:
-  include: ["Accuracy", "Precision", "Recall", "F1"]
+  include: ["Accuracy", "Precision", "Recall", "F1", "Coverage", "AbstentionRate", "EffectiveF1"]
 
 # ---------------------------------------------------------
 # 🌐 API Configuration (Optional)

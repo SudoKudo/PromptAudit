@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # models/ollama_model.py — Ollama backend for Glacier Code v2.0
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -14,11 +15,20 @@
 
 
 import requests, json, time
+=======
+"""Ollama backend for local PromptAudit inference runs."""
+
+import requests
+>>>>>>> Stashed changes
 from .base import BaseModel
 
 
 class OllamaModel(BaseModel):
     """Local-inference backend using Ollama's HTTP API."""
+
+    def __init__(self, name: str, gen_cfg: dict):
+        super().__init__(name, gen_cfg)
+        self.session = requests.Session()
 
     def generate(self, prompt: str) -> str:
         """
@@ -77,14 +87,17 @@ class OllamaModel(BaseModel):
             "stream": False,         # Disable streaming for simplified processing
         }
 
+        keep_alive = self.gen_cfg.get("ollama_keep_alive")
+        if keep_alive:
+            payload["keep_alive"] = keep_alive
+
         # Optional stop sequences (["SAFE", "VULNERABLE"], etc.)
         if stop_list := self.gen_cfg.get("stop_sequences"):
             payload["options"]["stop"] = stop_list
 
         try:
-            # Send request to Ollama and record how long generation takes
-            start = time.time()
-            response = requests.post(url, json=payload, timeout=300)
+            # Reuse one HTTP session so localhost connections stay warm across samples.
+            response = self.session.post(url, json=payload, timeout=300)
 
             # Raise an exception for any HTTP error (4xx or 5xx)
             response.raise_for_status()

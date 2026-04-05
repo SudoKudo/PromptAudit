@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # prompts/cot.py — PromptAudit v2.0: Chain-of-Thought (CoT) classification strategy
 # Author: Steffen Camarato — University of Central Florida
 # prompts/cot.py - Chain-of-Thought (CoT) strategy for Code v2.0
@@ -19,6 +20,9 @@
 #
 #   This keeps Chain-of-Thought reasoning separate from label parsing
 #   and centralizes all classification logic.
+=======
+"""Chain-of-thought prompt strategy for vulnerability classification."""
+>>>>>>> Stashed changes
 
 from .base_prompt import BasePrompt
 

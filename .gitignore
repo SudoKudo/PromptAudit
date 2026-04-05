@@ -1,1 +1,20 @@
-data/CVE_Dataset/cve_code_files/*
+# Virtual environments
+.venv/
+venv/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+
+# Local editor and OS metadata
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local GUI preferences
+ui/user_prefs.yaml
+
+# Generated experiment artifacts
+results/*
+!results/__init__.py

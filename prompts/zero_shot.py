@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # prompts/zero_shot.py — PromptAudit v2.0: Zero-Shot classification strategy
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -17,6 +18,9 @@
 #
 #   This keeps ZeroShot simple and makes the runner the single place
 #   that talks to the model backend for this strategy.
+=======
+"""Zero-shot prompt strategy for direct vulnerability classification."""
+>>>>>>> Stashed changes
 
 from .base_prompt import BasePrompt
 

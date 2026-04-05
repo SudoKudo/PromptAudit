@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # models/base.py — Abstract base class for all model backends in Glacier Code v2.0
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -12,6 +13,9 @@
 #       output = model.generate(prompt)
 # without needing to know which backend is being used.
 
+=======
+"""Common interface implemented by all PromptAudit model backends."""
+>>>>>>> Stashed changes
 
 class BaseModel:
     def __init__(self, name, gen_cfg):
@@ -25,7 +29,7 @@ class BaseModel:
                 - "codellama:7b"
                 - "gpt-4o-mini"
                 - "custom-api-model"
-            
+
             gen_cfg (dict):
                 A dictionary containing generation parameters such as:
                     - temperature
@@ -36,8 +40,8 @@ class BaseModel:
                     - etc.
 
         Notes:
-            I keep this class intentionally simple because the subclasses handle
-            all backend-specific logic (e.g., HTTP requests, HF pipelines, Ollama).
+            Subclasses own the backend-specific behavior such as HTTP requests,
+            tokenizer and model setup, and runtime-specific generation details.
         """
         self.name = name
         self.gen_cfg = gen_cfg

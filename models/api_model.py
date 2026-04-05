@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # models/api_model.py — REST API backend model wrapper for Glacier Code v2.0
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -10,6 +11,9 @@
 #
 # The structure closely mirrors OpenAI's legacy /v1/completions format so it
 # works with many third-party providers.
+=======
+"""OpenAI-style HTTP backend used when PromptAudit runs against a remote API."""
+>>>>>>> Stashed changes
 
 import requests, json
 from .base import BaseModel
@@ -17,6 +21,10 @@ from .base import BaseModel
 
 class APIModel(BaseModel):
     """OpenAI-style REST API backend for text generation."""
+
+    def __init__(self, name: str, gen_cfg: dict):
+        super().__init__(name, gen_cfg)
+        self.session = requests.Session()
 
     def generate(self, prompt: str) -> str:
         """
@@ -71,7 +79,7 @@ class APIModel(BaseModel):
             # ------------------------------------------------------------------
             # Make the HTTP POST request
             # ------------------------------------------------------------------
-            response = requests.post(
+            response = self.session.post(
                 url,
                 headers=headers,
                 json=payload,

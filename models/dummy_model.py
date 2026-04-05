@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # models/dummy_model.py — Offline “fake” model for Glacier Code v2.0
 # Author: Steffen Camarato — University of Central Florida
 # ---------------------------------------------------------------------
@@ -16,6 +17,9 @@
 #
 # This lets me test the entire Code v2.0 pipeline without requiring real model inference.
 
+=======
+"""Deterministic offline backend used for smoke tests and UI checks."""
+>>>>>>> Stashed changes
 
 class DummyModel:
     def __init__(self, name, gen_cfg):
