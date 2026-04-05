@@ -1,28 +1,4 @@
-<<<<<<< Updated upstream
-# code_datasets/toy_dataset.py — Local CSV toy dataset loader for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# This module loads a simple "toy" dataset from a local CSV file.
-# I use this for:
-#   - Quick tests of the full pipeline
-#   - Offline demos when large datasets (like CVEfixes/BigVul) are unavailable
-#
-# Expected CSV columns:
-#   - id        (optional; if missing, I auto-generate a sequential ID)
-#   - code      (required; the code snippet to classify)
-#   - label     (optional; class label, e.g., SAFE or VULNERABLE)
-#   - language  (optional; programming language of the snippet)
-#
-# Output format for each row:
-#   {
-#       "id": int,
-#       "language": str,
-#       "code": str,
-#       "label": str
-#   }
-=======
 """Load the small CSV-backed toy dataset used for smoke tests and local demos."""
->>>>>>> Stashed changes
 
 import csv
 import os

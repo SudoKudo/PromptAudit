@@ -1,26 +1,4 @@
-<<<<<<< Updated upstream
-# prompts/zero_shot.py — PromptAudit v2.0: Zero-Shot classification strategy
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# Purpose:
-#   ZeroShot is the simplest prompt strategy. It builds a single,
-#   clean instruction prompt for classifying a code snippet from a
-#   security perspective.
-#
-# PromptAudit v2.0 design (Option A):
-#   - This strategy DOES NOT call model.generate() itself.
-#   - It only builds and returns a prompt string.
-#   - The ExperimentRunner:
-#       * Calls apply(model, code, gen_cfg) → gets the prompt string.
-#       * Appends the strict SAFE/VULNERABLE "TASK" block.
-#       * Calls model.generate(full_prompt).
-#       * Sends the raw model output to parse_verdict().
-#
-#   This keeps ZeroShot simple and makes the runner the single place
-#   that talks to the model backend for this strategy.
-=======
 """Zero-shot prompt strategy for direct vulnerability classification."""
->>>>>>> Stashed changes
 
 from .base_prompt import BasePrompt
 

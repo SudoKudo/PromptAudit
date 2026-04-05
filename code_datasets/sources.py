@@ -1,25 +1,4 @@
-<<<<<<< Updated upstream
-# code_datasets/sources.py — Tiny built-in samples for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# This module defines small, hard-coded example snippets for a few well-known
-# vulnerability datasets (CVEfixes, BigVul, Vul4J).
-#
-# I use these primarily for:
-#   - Quick sanity checks of the pipeline
-#   - Demos when the full Hugging Face datasets are not available or are too large
-#
-# Each function returns a tiny list of samples that mimic the real datasets'
-# structure:
-#   {
-#       "id": int,       # Unique sample identifier
-#       "code": str,     # Code snippet to classify
-#       "label": str     # "VULNERABLE" or "SAFE"
-#   }
-
-=======
 """Small in-memory sample sets used for smoke tests and demos."""
->>>>>>> Stashed changes
 
 def load_cvefixes():
     """

@@ -1,28 +1,7 @@
-<<<<<<< Updated upstream
-# code_datasets/hf_loader.py — Hugging Face dataset loader for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# This module handles loading large research datasets from the Hugging Face Hub
-# (e.g., CVEfixes, BigVul, Vul4J) and converting them into the unified format
-# used throughout Code v2.0:
-#
-#     {
-#         "id": int,
-#         "language": str,
-#         "code": str,
-#         "label": str
-#     }
-#
-# I also included logic to gently ensure the user is logged into Hugging Face,
-# without forcing a login every time the code runs.
-
-import os, subprocess
-=======
 """Load PromptAudit datasets from the Hugging Face Hub and normalize sample rows."""
 
 import os
 import subprocess
->>>>>>> Stashed changes
 from datasets import load_dataset
 
 # Prefer HfFolder when it is available so token detection follows the

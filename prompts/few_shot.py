@@ -1,25 +1,4 @@
-<<<<<<< Updated upstream
-# prompts/few_shot.py — PromptAudit v2.0: Few-Shot classification strategy
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# Purpose:
-#   This prompt strategy gives the model a couple of labeled examples first,
-#   then asks it to analyze a new code sample from a security perspective.
-#
-# PromptAudit v2.0 design (Option A):
-#   - This strategy DOES NOT call model.generate() itself.
-#   - It only builds and returns a prompt string.
-#   - The ExperimentRunner:
-#       * Calls apply(model, code, gen_cfg) → gets the prompt string.
-#       * Appends the strict SAFE/VULNERABLE "TASK" block.
-#       * Calls model.generate(full_prompt).
-#       * Sends the raw model output to parse_verdict().
-#
-#   This keeps label semantics centralized and ensures consistent behavior
-#   across ZeroShot, FewShot, CoT, AdaptiveCoT, and SelfConsistency.
-=======
 """Few-shot prompt strategy with built-in labeled examples."""
->>>>>>> Stashed changes
 
 from .base_prompt import BasePrompt
 

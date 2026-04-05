@@ -1,19 +1,4 @@
-<<<<<<< Updated upstream
-# code_datasets/loader.py — Glacier v2.0 (GUI-compatible dataset loader)
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# This module provides a unified interface for loading datasets in Glacier Code 2.0.
-# I designed it so the GUI, experiment runner, and CLI can all load datasets using
-# the same function, whether the dataset is local or downloaded from Hugging Face.
-#
-# The loader accepts either:
-#   - A simple dataset name (string), or
-#   - A configuration dictionary (source/name/path)
-#
-# The goal is to allow maximum flexibility while keeping the API extremely simple.
-=======
 """Resolve dataset names and load samples from local or Hugging Face sources."""
->>>>>>> Stashed changes
 
 import yaml
 from pathlib import Path

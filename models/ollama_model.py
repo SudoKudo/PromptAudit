@@ -1,25 +1,6 @@
-<<<<<<< Updated upstream
-# models/ollama_model.py — Ollama backend for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# This class provides local model inference through the Ollama runtime.
-#
-# Why Ollama?
-#   - Fast local inference
-#   - Easy model management (pull, update, run)
-#   - No GPU required (supports CPU-only)
-#   - Drop-in backend replacement for API/HF models
-#
-# I designed this class to match the BaseModel interface so the GUI and
-# experiment runner can treat it exactly like other model backends.
-
-
-import requests, json, time
-=======
 """Ollama backend for local PromptAudit inference runs."""
 
 import requests
->>>>>>> Stashed changes
 from .base import BaseModel
 
 

@@ -1,31 +1,7 @@
-<<<<<<< Updated upstream
-# prompts/self_consistency.py — PromptAudit v2.0: Adaptive Chain-of-Thought (CoT) + Self-Consistency classification strategy
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# Purpose:
-#   Self-Consistency strategy with Adaptive CoT behavior, rewritten for the
-#   PromptAudit v2.0 pipeline where:
-#
-#       • Prompt strategies RETURN RAW MODEL OUTPUT (per sample)
-#       • parse_verdict() is the ONLY label interpreter
-#       • Self-Consistency votes on parsed verdicts, not text
-#
-#   This version:
-#       - Draws N stochastic samples (sc_samples)
-#       - For each sample:
-#             1) Generate a direct-style prompt (fast)
-#             2) If parsing fails, generate a reasoning-style prompt (slow)
-#             3) Parse each raw output using parse_verdict()
-#       - Collect only valid SAFE/VULNERABLE votes
-#       - Return the MAJORITY label ("safe"/"vulnerable") or "unknown"
-#
-#   All SAFE/VULNERABLE logic is centralized in evaluation.label_parser.
-=======
 """Self-consistency prompt strategy that votes across protocol-aware samples."""
 
 import time
 from collections import Counter
->>>>>>> Stashed changes
 
 from .base_prompt import BasePrompt
 from evaluation.label_parser import parse_verdict_details

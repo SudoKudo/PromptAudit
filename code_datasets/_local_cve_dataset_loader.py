@@ -1,12 +1,4 @@
-<<<<<<< Updated upstream
-# Author: Yohan Hmaiti — University of Central Florida
-# ---------------------------------------------------------------------
-# Local CVEfixes dataset loader that reads from folder structure.
-# Each CVE has vulnerable (code_before) and fixed (code_after) versions.
-
-=======
 """Load local CVE patch datasets from the repository folder layout."""
->>>>>>> Stashed changes
 
 from pathlib import Path
 import re

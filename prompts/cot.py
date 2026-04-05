@@ -1,28 +1,4 @@
-<<<<<<< Updated upstream
-# prompts/cot.py — PromptAudit v2.0: Chain-of-Thought (CoT) classification strategy
-# Author: Steffen Camarato — University of Central Florida
-# prompts/cot.py - Chain-of-Thought (CoT) strategy for Code v2.0
-# Author: Steffen Camarato - University of Central Florida
-# ---------------------------------------------------------------------
-# Purpose:
-#   This prompt strategy encourages the model to reason step by step
-#   about the code and its security properties before committing to
-#   a classification.
-#
-# PromptAudit v2.0 design (Option A):
-#   - This strategy does NOT call model.generate() itself.
-#   - It only builds and returns a prompt string.
-#   - The ExperimentRunner:
-#       * Calls apply(model, code, gen_cfg) to get the CoT prompt.
-#       * Appends the strict SAFE/VULNERABLE "TASK" block.
-#       * Calls model.generate(full_prompt).
-#       * Sends the raw model output to parse_verdict().
-#
-#   This keeps Chain-of-Thought reasoning separate from label parsing
-#   and centralizes all classification logic.
-=======
 """Chain-of-thought prompt strategy for vulnerability classification."""
->>>>>>> Stashed changes
 
 from .base_prompt import BasePrompt
 

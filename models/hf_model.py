@@ -1,21 +1,4 @@
-<<<<<<< Updated upstream
-# models/hf_model.py — HuggingFace Transformers backend for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# This backend allows Code v2.0 to run LLMs directly through the HuggingFace
-# Transformers library (AutoModelForCausalLM + AutoTokenizer).
-#
-# I use this class when:
-#   - Running local GPU models
-#   - Evaluating open-source LLMs (Mistral, CodeLlama, Gemma, etc.)
-#   - Performing offline experiments without API calls
-#
-# The interface matches BaseModel, so the GUI and experiment runner can treat
-# HF models exactly like Ollama models or API models.
-
-=======
 """Transformers backend for local Hugging Face model inference."""
->>>>>>> Stashed changes
 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM

@@ -1,31 +1,4 @@
-<<<<<<< Updated upstream
-# prompts/base_prompt.py — PromptAudit v2.0 (Unified Prompt Interface)
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# Purpose:
-#   This class defines a common interface that all prompt strategies inherit from.
-#   It supports two main usages:
-#
-#     1) Prompt-building mode:
-#           prompt_str = SomePrompt().apply(code)
-#        → returns a fully formatted prompt string (no model call).
-#
-#     2) End-to-end inference mode:
-#           result_str = SomePrompt().apply(model, code, gen_cfg)
-#        → builds the prompt, sends it to the model, and returns the raw model output.
-#
-#   Advanced usage (for custom full prompts):
-#     3) Raw prompt mode:
-#           result_str = SomePrompt().apply(model, full_prompt, gen_cfg, raw_prompt=True)
-#        → sends `full_prompt` directly to the model without wrapping it in
-#          BasePrompt.template.
-#
-#   This lets simple strategies rely on the base template while giving more
-#   complex strategies (CoT, SelfConsistency, AdaptiveCoT) full control when needed.
-
-=======
 """Base class shared by all PromptAudit prompt strategies."""
->>>>>>> Stashed changes
 
 class BasePrompt:
     """Base class for all prompt strategies in PromptAudit."""

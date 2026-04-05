@@ -1,31 +1,4 @@
-<<<<<<< Updated upstream
-# evaluation/report.py — PromptAudit v2.0
-# Author: Steffen Camarato — University of Central Florida
-#
-# 💡 WHAT THIS FILE DOES
-# -----------------------------------------------------------------------------
-# This file defines a tiny helper class (HtmlReport) that takes my experiment
-# results (a list of Python dicts) and turns them into a single, interactive
-# HTML dashboard. You open the HTML file in my browser and get:
-#   • A styled header with version, author, and a Dark Mode toggle
-#   • An accordion with sections: Parameters, Leaderboard, Filters, Chart, Tables
-#   • Live filters (dropdowns + sliders) that instantly update everything
-#   • A unified bar chart (Accuracy / Precision / Recall / F1)
-#   • Two tables:
-#       - Results (one row per model+prompt+dataset combo with metrics)
-#       - Detailed predictions (one row per sample, with SAFE/VULNERABLE pills)
-#   • Export buttons: CSV, JSON, PNG chart capture, full-page PDF, glossary PDF
-#
-# IMPORTANT NOTES
-# -----------------------------------------------------------------------------
-# • You DO NOT need to edit any of the HTML/JS below to use this. Just pass my
-#   results in and call HtmlReport.write(...). It will generate a .html file.
-# • The big HTML string below includes all styles (CSS) and interactive behavior
-#   (JavaScript).
-# • We never run this HTML inside Python; we only write it out as text.
-=======
 """Render the interactive HTML report for a PromptAudit run."""
->>>>>>> Stashed changes
 
 import os
 import json
@@ -41,11 +14,7 @@ class HtmlReport:
         self.results = results
 
     def write(self, output_path, records, metric_keys, version="v2.0",
-<<<<<<< Updated upstream
-              author="Steffen Camarato — University of Central Florida"):
-=======
               author="PromptAudit"):
->>>>>>> Stashed changes
         # Ensure the output folder exists so we can write the HTML file safely.
         output_dir = os.path.dirname(output_path)
         if output_dir:

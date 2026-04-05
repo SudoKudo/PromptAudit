@@ -1,25 +1,4 @@
-<<<<<<< Updated upstream
-# evaluation/label_parser.py for PromptAudit v2.0
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# Centralized parser for converting raw model output → SAFE / VULNERABLE / UNKNOWN.
-#
-# Three-tiered parsing:
-#   Tier 1: STRICT first-line rule
-#           - First non-empty line must be a single word: SAFE or VULNERABLE.
-#   Tier 2: EXPLICIT verdict markers
-#           - Lines like "Final answer: SAFE", "Verdict: VULNERABLE."
-#           - Must match the entire line to avoid "Final answer: this code is not safe".
-#   Tier 3: NEGATION-AWARE lexical scan
-#           - Looks at the full text for cues of safety or vulnerability, including
-#             negated forms such as "not safe" and "not vulnerable".
-#
-# This keeps runner.py clean and makes parsing testable and consistent
-# across prompt strategies.
-# ---------------------------------------------------------------------
-=======
 """Parse model output into SAFE, VULNERABLE, or UNKNOWN labels."""
->>>>>>> Stashed changes
 
 import re
 

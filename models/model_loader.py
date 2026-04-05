@@ -1,24 +1,4 @@
-<<<<<<< Updated upstream
-# models/loader.py — Glacier Code v2.0 (Unified Model Loader for GUI + CLI)
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# This file provides the central entry point for loading model backends.
-#
-# I designed load_model() so the entire system (GUI, CLI, ExperimentRunner)
-# can request a model using:
-#       - A simple model name (string), or
-#       - A detailed configuration dictionary
-#
-# Supported backends in Code v2.0:
-#   - OllamaModel (local models run through Ollama)
-#   - DummyModel  (offline instant-response model)
-#
-# The design is intentionally extensible — new backends (APIModel, HFModel)
-# can be registered here without touching the runner or GUI.
-
-=======
 """Instantiate the configured model backend for a PromptAudit run."""
->>>>>>> Stashed changes
 
 from .ollama_model import OllamaModel
 from .dummy_model import DummyModel

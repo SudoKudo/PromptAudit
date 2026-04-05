@@ -1,25 +1,4 @@
-<<<<<<< Updated upstream
-# models/dummy_model.py — Offline “fake” model for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# 🔹 Purpose:
-# This is my offline testing model — a no-API, no-network, instant-response model.
-#
-# I use this DummyModel whenever I want:
-#   - Quick local testing without calling Ollama / HuggingFace / APIs
-#   - Fully deterministic, zero-latency responses
-#   - A simple way to validate the experiment runner, GUI, and report pipeline
-#
-# Behavior:
-#   - Scans the prompt for risky functions / patterns
-#   - If anything dangerous appears → returns "VULNERABLE"
-#   - Otherwise → returns "SAFE"
-#
-# This lets me test the entire Code v2.0 pipeline without requiring real model inference.
-
-=======
 """Deterministic offline backend used for smoke tests and UI checks."""
->>>>>>> Stashed changes
 
 class DummyModel:
     def __init__(self, name, gen_cfg):

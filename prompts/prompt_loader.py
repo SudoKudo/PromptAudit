@@ -1,18 +1,4 @@
-<<<<<<< Updated upstream
-# prompts/prompt_loader.py — PromptAudit v2.0
-# Author: Steffen Camarato — University of Central Florida
-#
-# Purpose:
-#   Provide a single, well defined entry point for loading prompt strategies
-#   by name. The rest of the system (GUI, runner, configs) can refer to
-#   strategies with simple string identifiers, and this module maps those
-#   identifiers to the appropriate Python classes.
-#
-#   This keeps all strategy wiring in one place and avoids scattering imports
-#   across the codebase.
-=======
 """Resolve prompt strategy names to their Python implementations."""
->>>>>>> Stashed changes
 
 from .zero_shot import ZeroShot
 from .few_shot import FewShot

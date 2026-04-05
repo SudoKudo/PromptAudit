@@ -1,21 +1,4 @@
-<<<<<<< Updated upstream
-# core/io.py — Minimal filesystem helpers for Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# Purpose:
-#   This module provides a tiny utility to make sure one or more directories
-#   exist before writing logs, results, or reports.
-#
-#   Typical usage in Code v2.0:
-#       from core.io import ensure_dirs
-#       ensure_dirs(["results", "results/logs", "results/plots"])
-#
-#   If a directory is already present, nothing happens.
-#   If it is missing, it is created (including any parent directories).
-
-=======
 """Small filesystem helpers shared across PromptAudit modules."""
->>>>>>> Stashed changes
 
 import os
 

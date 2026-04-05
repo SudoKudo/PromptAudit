@@ -1,19 +1,4 @@
-<<<<<<< Updated upstream
-# models/api_model.py — REST API backend model wrapper for Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# This class lets Code v2.0 talk to ANY OpenAI-style text-generation API
-# (OpenAI, together.ai, compatible self-hosted servers, etc.).
-#
-# I built this as a drop-in model backend so the experiment runner and GUI
-# do not need to know anything about REST calls. They just call model.generate()
-# and receive text back, same as with Ollama or HuggingFace backends.
-#
-# The structure closely mirrors OpenAI's legacy /v1/completions format so it
-# works with many third-party providers.
-=======
 """OpenAI-style HTTP backend used when PromptAudit runs against a remote API."""
->>>>>>> Stashed changes
 
 import requests, json
 from .base import BaseModel

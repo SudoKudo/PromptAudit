@@ -1,12 +1,5 @@
 #!/bin/bash
-<<<<<<< Updated upstream
-# ==============================
-# PromptAudit — Linux/Mac Launcher
-# Author: Steffen Camarato
-# ==============================
-=======
 # PromptAudit POSIX launcher
->>>>>>> Stashed changes
 
 # Move to this script's directory
 cd "$(dirname "$0")"

@@ -1,25 +1,4 @@
-<<<<<<< Updated upstream
-# ui/dashboard.py — PromptAudit Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-#         Adjusted by Yohan Hmaiti for reasoning models and GPU compatibility
-# ---------------------------------------------------------------------
-# Purpose:
-#   This file implements the main GUI dashboard for Code v2.0 using ttkbootstrap.
-#   The dashboard lets me:
-#     - Select models, prompt strategies, and datasets
-#     - Configure generation settings (temperature, top_p, stop sequences, etc.)
-#     - Save/load presets of those settings
-#     - Launch the ExperimentRunner and monitor progress in real time
-#     - Open the generated HTML report when the run completes
-#
-#   The dashboard is tightly integrated with:
-#     - core.runner.ExperimentRunner  → orchestrates datasets × models × prompts
-#     - models backends (Ollama / HF / dummy API) → consume gen_cfg settings
-#     - evaluation/report.py          → reads results and builds the HTML report
-
-=======
 """Main ttkbootstrap dashboard for configuring and running PromptAudit experiments."""
->>>>>>> Stashed changes
 
 import copy
 import os, sys, time, yaml, queue, threading, subprocess, webbrowser, tkinter as tk, re
@@ -35,11 +14,7 @@ from core.runner import ExperimentRunner
 
 # --- Global constants / metadata ---------------------------------------------
 VERSION_TAG = "Prompt Audit 2.0"  # Shown in the window title for quick version ID
-<<<<<<< Updated upstream
-AUTHOR = "Steffen Camarato — University of Central Florida"
-=======
 AUTHOR = "PromptAudit"
->>>>>>> Stashed changes
 
 # Where user preferences and presets are stored on disk
 PREFS_PATH = "ui/user_prefs.yaml"

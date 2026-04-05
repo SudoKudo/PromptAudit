@@ -1,21 +1,4 @@
-<<<<<<< Updated upstream
-# models/base.py — Abstract base class for all model backends in Glacier Code v2.0
-# Author: Steffen Camarato — University of Central Florida
-# ---------------------------------------------------------------------
-# Every model backend (OllamaModel, HFModel, APIModel, etc.) inherits from this class.
-#
-# I use this BaseModel to enforce a common interface:
-#   - All models must specify a name
-#   - All models must accept generation settings (gen_cfg)
-#   - All models must implement a `generate(prompt)` method
-#
-# The Experiment Runner and GUI rely on this uniform interface so they can call:
-#       output = model.generate(prompt)
-# without needing to know which backend is being used.
-
-=======
 """Common interface implemented by all PromptAudit model backends."""
->>>>>>> Stashed changes
 
 class BaseModel:
     def __init__(self, name, gen_cfg):

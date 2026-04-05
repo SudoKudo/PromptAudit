@@ -1,26 +1,4 @@
-<<<<<<< Updated upstream
-# prompts/adaptive_cot.py — PromptAudit v2.0: Adaptive Chain-of-Thought (CoT) classification strategy
-# Author: Steffen Camarato — University of Central Florida
-# -------------------------------------------------------------------------
-# Purpose:
-#   Adaptive Chain-of-Thought (CoT) strategy that encourages the model to:
-#     1) Try to make a quick decision if it is confident.
-#     2) Otherwise, reason step by step before deciding.
-#
-# PromptAudit v2.0 design (Option A):
-#   - This strategy does NOT call model.generate() itself.
-#   - It only builds and returns a prompt string.
-#   - The ExperimentRunner:
-#       * Calls apply(model, code, gen_cfg) to get the adaptive CoT prompt.
-#       * Appends the strict SAFE or VULNERABLE "TASK" block.
-#       * Calls model.generate(full_prompt).
-#       * Sends the raw model output to parse_verdict().
-#
-#   This keeps the adaptive reasoning behavior inside the prompt text but
-#   centralizes all label parsing logic in evaluation.label_parser.
-=======
 """Adaptive chain-of-thought prompt strategy for vulnerability classification."""
->>>>>>> Stashed changes
 
 from .base_prompt import BasePrompt
 

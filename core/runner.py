@@ -1,20 +1,5 @@
-<<<<<<< Updated upstream
-# core/runner.py — PromptAudit v2.0 
-# Author: Steffen Camarato — University of Central Florida
-# Purpose: Orchestrates the full experiment lifecycle with self-consistency,
-# adaptive prompt strategies, and graceful stop behavior.
-#
-# High-level responsibilities:
-#   - Load datasets, models, and prompt strategies based on configuration/GUI selections
-#   - Run every selected combination (dataset × model × prompt)
-#   - Collect per-sample predictions and compute aggregate metrics
-#   - Emit both CSV summaries and an interactive HTML report for analysis
-
-import os
-=======
 """Run PromptAudit experiments across datasets, models, prompts, and ablations."""
 
->>>>>>> Stashed changes
 import csv
 import json
 import os
@@ -966,11 +951,7 @@ class ExperimentRunner:
                 records,
                 metric_keys,
                 version="v2.0",
-<<<<<<< Updated upstream
-                author="Steffen Camarato — University of Central Florida"
-=======
                 author="PromptAudit",
->>>>>>> Stashed changes
             )
             self.progress(f"HTML report written to {self.report_html_path}")
         except Exception as e:
