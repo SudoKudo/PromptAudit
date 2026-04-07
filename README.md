@@ -269,7 +269,7 @@ Typical contents:
 
 This means rerunning an experiment creates a new report and new CSV files instead of overwriting a previous run.
 
-The HTML report also supports language-level slicing. Selecting a language in the report filters each record down to predictions from that language only, then recomputes the displayed metrics, charts, and leaderboard from those per-sample outcomes.
+The HTML reports displayed metrics, charts, and leaderboard from those per-sample outcomes.
 
 Example HTML report output:
 
@@ -300,13 +300,3 @@ For a smoke test:
 3. Keep the default generation settings
 4. Run the experiment
 5. Open the generated report from the run directory
-
-## Notes on scope
-
-PromptAudit is built for controlled prompt-sensitivity studies. It does not solve known benchmark problems such as:
-
-- patch-derived label noise in CVE-linked datasets
-- missing runtime context for snippet-level vulnerability decisions
-- transferability of results from smaller open models to stronger proprietary systems
-
-Those issues need to be discussed in the paper and, where possible, addressed through additional experiments or tighter subsets.
