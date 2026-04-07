@@ -50,9 +50,9 @@ class HtmlReport:
         def build_param_rows(p):
             """
             Convert a dict of parameters into a small HTML table:
-              â€¢ Floats get nicely rounded
-              â€¢ Lists get joined with commas
-              â€¢ If nothing is available, we show a friendly placeholder
+              - Floats get nicely rounded
+              - Lists get joined with commas
+              - If nothing is available, we show a friendly placeholder
             """
             if not p:
                 return "<div class='text-muted small'>No parameters recorded.</div>"
@@ -67,11 +67,11 @@ class HtmlReport:
 
         # ---- HTML (escaped safely below) ------------------------------------
         # NOTE: This is a single HTML page containing:
-        #   â€¢ Bootstrap (layout + icons)
-        #   â€¢ Chart.js (charts)
-        #   â€¢ simple-datatables (tables w/ pagination & search)
-        #   â€¢ html2canvas + jsPDF (image/PDF export)
-        #   â€¢ Lots of semantic <div> sections and CSS variables for theming
+        #   - Bootstrap (layout + icons)
+        #   - Chart.js (charts)
+        #   - simple-datatables (tables with pagination and search)
+        #   - html2canvas + jsPDF (image/PDF export)
+        #   - Semantic <div> sections and CSS variables for theming
         html = """<!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
 <head>

@@ -28,14 +28,26 @@ The project is aimed at controlled experiments rather than production vulnerabil
 PromptAudit/
 |-- config.yaml
 |-- requirements.txt
+|-- run.bat
+|-- run.sh
 |-- run_PromptAudit.py
+|-- data/
+|   `-- ...
 |-- code_datasets/
 |   |-- dataset_loader.py
 |   |-- hf_loader.py
+|   |-- sources.py
 |   |-- toy_dataset.py
 |   `-- _local_cve_dataset_loader.py
 |-- core/
 |   `-- runner.py
+|-- debug/
+|   `-- generate_fake_report.py
+|-- docs/
+|   `-- screenshots/
+|       |-- dashboard_main.png
+|       |-- dashboard_config.png
+|       `-- report_sample.png
 |-- evaluation/
 |   |-- label_parser.py
 |   |-- metrics.py
@@ -117,8 +129,10 @@ ollama pull falcon:7b-instruct
 If you want to download Hugging Face datasets or run Hugging Face model ids locally:
 
 ```bash
-huggingface-cli login
+hf auth login
 ```
+
+If your local environment still uses the legacy CLI entrypoint, `huggingface-cli login` also works.
 
 ## Running PromptAudit
 
@@ -127,6 +141,8 @@ Launch the GUI:
 ```bash
 python run_PromptAudit.py
 ```
+
+Convenience launchers are also included as [`run.bat`](run.bat) and [`run.sh`](run.sh).
 
 From the dashboard you can choose:
 
@@ -174,7 +190,15 @@ The right pane shows:
 - live log output
 - `Open Report` for the latest HTML report for the active run
 
+Main dashboard view:
+
+![PromptAudit main dashboard](docs/screenshots/dashboard_main.png)
+
 ## GUI setting reference
+
+Configuration view with model, dataset, ablation, generation, and performance controls:
+
+![PromptAudit configuration view](docs/screenshots/dashboard_config.png)
 
 ### Models
 
@@ -246,6 +270,10 @@ Typical contents:
 This means rerunning an experiment creates a new report and new CSV files instead of overwriting a previous run.
 
 The HTML report also supports language-level slicing. Selecting a language in the report filters each record down to predictions from that language only, then recomputes the displayed metrics, charts, and leaderboard from those per-sample outcomes.
+
+Example HTML report output:
+
+![PromptAudit report sample](docs/screenshots/report_sample.png)
 
 ## Pause and resume
 

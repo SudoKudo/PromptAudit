@@ -1,6 +1,7 @@
 """Chain-of-thought prompt strategy for vulnerability classification."""
 
 from .base_prompt import BasePrompt
+from evaluation.output_protocol import normalize_output_protocol
 
 
 class CoT(BasePrompt):
@@ -9,39 +10,40 @@ class CoT(BasePrompt):
     # Logical identifier for this strategy (used in configs and reporting).
     name = "cot"
 
-    # Single CoT-style template:
-    #   - Ask for step by step reasoning about potential vulnerabilities.
-    #   - The final SAFE/VULNERABLE formatting is not specified here;
-    #     the runner adds that instruction block.
-    template = (
-        "You are a secure code auditor. Analyze the following code step by step, "
-        "carefully reasoning about any potential security vulnerabilities, such as "
-        "buffer overflows, injections, improper validation, race conditions, and "
-        "other common issues.\n\n"
-        "Explain your reasoning clearly before you decide on the final classification.\n\n"
-        "Code:\n{code}\n\n"
-        "Reasoning:\n1) "
-    )
-
     def apply(self, model, code, gen_cfg):
-        """
-        Build and return the Chain-of-Thought prompt string.
+        """Build and return the Chain-of-Thought prompt string."""
+        return self.apply_with_context(model, code, gen_cfg)
 
-        Args:
-            model:
-                Backend model instance (not used directly here, but included
-                for interface consistency with other strategies).
-            code (str):
-                The code snippet to analyze.
-            gen_cfg (dict):
-                Generation configuration (temperature, etc.). Not used here,
-                since this strategy does not call model.generate() itself.
+    def apply_with_context(
+        self,
+        model,
+        code,
+        gen_cfg,
+        *,
+        output_protocol="verdict_first",
+        parser_mode="full",
+    ):
+        """Build a CoT prompt that respects the selected verdict-placement protocol."""
+        del model, gen_cfg, parser_mode
 
-        Returns:
-            str:
-                A fully formatted CoT prompt string. The ExperimentRunner will:
-                    - Append the strict SAFE/VULNERABLE task instructions,
-                    - Call model.generate(full_prompt),
-                    - Feed the raw output to parse_verdict().
-        """
-        return self.template.format(code=code)
+        protocol = normalize_output_protocol(output_protocol)
+        placement_hint = (
+            "Give the required verdict first, then explain your reasoning starting on the second line."
+            if protocol == "verdict_first"
+            else "Reason step by step first, then place the final verdict on the last line."
+        )
+
+        prompt = (
+            "You are a secure code auditor. Analyze the following code step by step, "
+            "carefully reasoning about potential security vulnerabilities such as buffer "
+            "overflows, injections, improper validation, race conditions, and other "
+            "common issues.\n\n"
+            f"{placement_hint}\n\n"
+            "Consider at least these factors in your reasoning:\n"
+            "1) Inputs and trust boundaries\n"
+            "2) Validation and sanitization\n"
+            "3) Memory safety and resource management\n"
+            "4) Injection, race, and logic risks\n\n"
+            f"Code:\n{code}\n"
+        )
+        return prompt

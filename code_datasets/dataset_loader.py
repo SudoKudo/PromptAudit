@@ -178,7 +178,7 @@ def load_dataset(cfg_or_name, progress=lambda m: None):
 
         progress(f"Loading local dataset: {dataset_path}")
 
-        # The toy loader handles CSV-parsed datasets for Code 2.0.
+        # The toy loader handles CSV-parsed datasets for PromptAudit.
         return load_toy(dataset_path)
 
     # ------------------------------------------------------------------

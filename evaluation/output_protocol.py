@@ -23,7 +23,7 @@ def build_output_instruction(protocol: str) -> str:
     if protocol == "verdict_last":
         return (
             "\n\nTASK: Classify the code's security.\n"
-            "You may reason freely first if helpful.\n"
+            "If you include any explanation, it must appear before the final verdict.\n"
             "On the FINAL LINE ONLY, output exactly one of these words: SAFE or VULNERABLE.\n"
             "Do not add any other words, punctuation, or symbols on that final line.\n"
         )
@@ -32,5 +32,5 @@ def build_output_instruction(protocol: str) -> str:
         "\n\nTASK: Classify the code's security.\n"
         "On the FIRST LINE ONLY, output exactly one of these words: SAFE or VULNERABLE.\n"
         "Do not add any other words, punctuation, or symbols on that first line.\n"
-        "If you want to explain your reasoning, you may write it starting from the SECOND line.\n"
+        "If you include any explanation, it must begin on the SECOND line.\n"
     )

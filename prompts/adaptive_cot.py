@@ -1,6 +1,7 @@
 """Adaptive chain-of-thought prompt strategy for vulnerability classification."""
 
 from .base_prompt import BasePrompt
+from evaluation.output_protocol import normalize_output_protocol
 
 
 class AdaptiveCoT(BasePrompt):
@@ -9,44 +10,37 @@ class AdaptiveCoT(BasePrompt):
     # Logical name for this strategy (used in configs and reporting).
     name = "adaptive_cot"
 
-    # Single adaptive CoT template:
-    #   - Tells the model to decide quickly if possible.
-    #   - If not confident, it should think step by step about vulnerabilities.
-    #   - The exact SAFE or VULNERABLE output format is not defined here;
-    #     the runner will append the strict labeling instructions.
-    template = (
-        "You are a secure code auditor. Your goal is to determine whether the "
-        "following code is SAFE or VULNERABLE.\n\n"
-        "1) First, quickly consider whether the code appears safe or unsafe.\n"
-        "2) If you are not confident, reason step by step about potential "
-        "vulnerabilities such as buffer overflows, injections, improper "
-        "validation, race conditions, and other common issues.\n"
-        "3) After your reasoning, you will receive separate instructions on how "
-        "to present the final classification.\n\n"
-        "Code:\n{code}\n\n"
-        "Begin your analysis:\n1) "
-    )
-
     def apply(self, model, code, gen_cfg):
-        """
-        Build and return the adaptive CoT prompt string.
+        """Build and return the adaptive CoT prompt string."""
+        return self.apply_with_context(model, code, gen_cfg)
 
-        Args:
-            model:
-                Backend model instance (not used directly here, but included
-                for interface consistency with other strategies).
-            code (str):
-                The code snippet to analyze.
-            gen_cfg (dict):
-                Generation configuration (temperature, top_p, etc.). Not used
-                here, since this strategy does not call model.generate() itself.
+    def apply_with_context(
+        self,
+        model,
+        code,
+        gen_cfg,
+        *,
+        output_protocol="verdict_first",
+        parser_mode="full",
+    ):
+        """Build an adaptive CoT prompt that respects the selected verdict-placement protocol."""
+        del model, gen_cfg, parser_mode
 
-        Returns:
-            str:
-                A fully formatted adaptive CoT prompt string. The
-                ExperimentRunner will:
-                    - Append the strict SAFE or VULNERABLE task instructions,
-                    - Call model.generate(full_prompt),
-                    - Feed the raw output to parse_verdict().
-        """
-        return self.template.format(code=code)
+        protocol = normalize_output_protocol(output_protocol)
+        placement_hint = (
+            "Put the required verdict first. If you explain your answer, do it after that first line."
+            if protocol == "verdict_first"
+            else "Do any adaptive reasoning before the final verdict line."
+        )
+
+        prompt = (
+            "You are a secure code auditor. Determine whether the following code is "
+            "SAFE or VULNERABLE.\n\n"
+            "Adjust the depth of your reasoning to the code:\n"
+            "1) If the code is straightforward and obviously SAFE or VULNERABLE, keep any explanation brief.\n"
+            "2) If the code uses pointer arithmetic, raw memory operations, manual resource "
+            "management, or complex input handling, reason through the risks step by step.\n"
+            f"3) {placement_hint}\n\n"
+            f"Code:\n{code}\n"
+        )
+        return prompt

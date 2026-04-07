@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+
 from datasets import load_dataset
 
 # Prefer HfFolder when it is available so token detection follows the
@@ -27,37 +28,32 @@ def ensure_hf_login():
       - Backward compatible: supports older token locations.
       - Non-intrusive: if login is already set up, it quietly returns.
     """
-    # âœ… 1. Try new Hugging Face Hub token cache
+    # 1. Try the current Hugging Face Hub token helper.
     if HfFolder is not None:
         try:
             token = HfFolder.get_token()
             if token:
-                # A token is already configured; no login needed.
                 return
         except Exception:
             # If anything goes wrong here, fall back to manual path checks.
             pass
 
-    # âœ… 2. Check old and new token locations
-    # Legacy path: older versions of the Hugging Face CLI stored the token here.
+    # 2. Check legacy and cache token locations.
     legacy_path = os.path.expanduser("~/.huggingface/token")
-    # Newer cache path: some setups use this cache-based location instead.
     cache_path = os.path.expanduser("~/.cache/huggingface/token")
-
-    # If we find a token file in either location, we assume the user is logged in.
     if os.path.exists(legacy_path) or os.path.exists(cache_path):
-        return  # Token file found; no need to prompt again.
+        return
 
-    # âœ… 3. If not logged in, prompt once via CLI
-    # At this point, no token was found through any method, so I request login.
-    print("ðŸ”‘ Hugging Face login required (first time only)â€¦")
+    # 3. If not logged in, prompt once via CLI.
+    print("[HF] Hugging Face login required (first time only).")
     try:
-        # This calls the Hugging Face CLI to handle the login flow in the terminal.
-        subprocess.run(["huggingface-cli", "login"], check=True)
+        try:
+            subprocess.run(["hf", "auth", "login"], check=True)
+        except FileNotFoundError:
+            subprocess.run(["huggingface-cli", "login"], check=True)
     except Exception as e:
-        # If the CLI login fails, raise a clear error message with guidance.
         raise RuntimeError(
-            "âš ï¸ Failed to log into Hugging Face. Run `huggingface-cli login` manually once."
+            "Failed to log into Hugging Face. Run `hf auth login` manually once."
         ) from e
 
 
@@ -86,37 +82,28 @@ def load_hf_dataset(name: str):
         - The function handles:
             * Ensuring Hugging Face login is set up.
             * Mapping simple dataset nicknames to full HF repo names.
-            * Extracting and renaming fields so the rest of Code 2.0
+            * Extracting and renaming fields so the rest of PromptAudit
               does not need to care about dataset-specific schemas.
     """
-    # Ensure the user is authenticated with Hugging Face before downloading.
     ensure_hf_login()
-
-    # Standardize the name to lowercase so the mapping is case-insensitive.
     name = name.lower()
 
-    # Map short names used in my code to the actual Hugging Face repository IDs.
+    # Map short names used in PromptAudit to the actual Hugging Face repository IDs.
     mapping = {
         "cvefixes": "DetectVul/CVEfixes",
         "bigvul": "ZeoBig/BigVul",
-        "vul4j": "secureai/Vul4J"
+        "vul4j": "secureai/Vul4J",
     }
 
-    # Look up the corresponding repository ID.
     repo = mapping.get(name)
     if not repo:
-        # If the shorthand is not recognized, fail early with a clear message.
         raise ValueError(f"Unsupported dataset {name}")
 
-    # Use the `datasets` library to download/load the "train" split from HF.
     ds = load_dataset(repo, split="train")
 
     def normalize_label(value) -> str:
         """Map common HF label encodings into the project-wide SAFE/VULNERABLE scheme."""
-        if isinstance(value, str):
-            cleaned = value.strip().lower()
-        else:
-            cleaned = str(value).strip().lower()
+        cleaned = value.strip().lower() if isinstance(value, str) else str(value).strip().lower()
 
         if cleaned in {"1", "true", "vulnerable", "vuln", "unsafe"}:
             return "VULNERABLE"
@@ -124,26 +111,15 @@ def load_hf_dataset(name: str):
             return "SAFE"
         return cleaned.upper() or "UNKNOWN"
 
-    # Convert the Hugging Face dataset rows into the unified structure expected by Code 2.0.
+    # Convert the Hugging Face dataset rows into the unified structure expected by PromptAudit.
     samples = []
     for i, row in enumerate(ds):
         samples.append({
-            # Sequential numeric ID to uniquely identify each sample.
             "id": i,
-
-            # Some datasets provide "language"; if missing, I default to "unknown".
             "language": row.get("language", "unknown"),
-
-            # Different datasets store the code under different column names.
-            # Priority:
-            #   1. func_before (vulnerable function before the fix)
-            #   2. code (generic code field)
             "code": row.get("func_before", row.get("code", row.get("func", ""))),
-
-            # Normalize the label to uppercase string.
-            # If "target" is missing, I default to "SAFE" to keep the label consistent.
-            "label": normalize_label(row.get("target", "SAFE")),
+            # Missing gold labels should stay explicit rather than being coerced to SAFE.
+            "label": normalize_label(row.get("target", "UNKNOWN")),
         })
 
-    # Return the fully normalized list of samples.
     return samples

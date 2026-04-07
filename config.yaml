@@ -2,7 +2,6 @@
 # PromptAudit v2.0 configuration
 # Binary SAFE/VULNERABLE classification settings
 #
-#
 # This file defines:
 #   - Default generation settings used by the runner / GUI
 #   - Available models (Ollama, HF, API)
@@ -12,12 +11,12 @@
 # =========================================================
 
 # ---------------------------------------------------------
-# 🧪 Debug / Logging Flags
+# Debug / Logging Flags
 # ---------------------------------------------------------
 debug_raw_outputs: false  # Enable only when diagnosing prompt/output issues; it slows long runs and floods logs
 
 # ---------------------------------------------------------
-# 🚀 Performance Controls
+# Performance Controls
 # These reduce avoidable overhead in long runs without
 # changing the underlying model outputs.
 # ---------------------------------------------------------
@@ -52,13 +51,13 @@ performance:
   ollama_keep_alive: 30m
 
 # ---------------------------------------------------------
-# ⚙️ Generation Configuration
+# Generation Configuration
 # These defaults are loaded at startup and then copied into
 # the runner. The GUI can override these values at runtime.
 # ---------------------------------------------------------
 generation:
-  # Controls randomness of the model’s output.
-  # Lower values (0.1–0.3) → more deterministic / stable.
+  # Controls randomness of the model output.
+  # Lower values (0.1-0.3) are more deterministic and stable.
   temperature: 0.2
 
   # Nucleus sampling: the model only samples from the top-p
@@ -66,7 +65,7 @@ generation:
   top_p: 0.9
 
   # Top-k sampling: restricts sampling to the k most likely
-  # next tokens. 40 is a standard “safe” value.
+  # next tokens. 40 is a conservative default.
   top_k: 40
 
   # Maximum number of new tokens the model is allowed to
@@ -78,11 +77,11 @@ generation:
   repetition_penalty: 1.0
 
   # API-only option (ignored by most local backends):
-  # Penalizes frequent tokens to diversify output.
+  # penalizes frequent tokens to diversify output.
   frequency_penalty: 0.0
 
   # API-only option (ignored by most local backends):
-  # Penalizes tokens already present in the context.
+  # penalizes tokens already present in the context.
   presence_penalty: 0.0
 
   # Beam search width for HF models. 1 = no beam search
@@ -101,7 +100,7 @@ generation:
   # Stop sequences passed to the backend by default.
   # NOTE:
   #   - The current runner logic may override this for some
-  #     SAFE/VULNERABLE pipelines (e.g., using "\n").
+  #     SAFE/VULNERABLE pipelines (for example, using "\n").
   #   - Leaving this empty here keeps the YAML neutral and
   #     backend-agnostic.
   stop_sequences: []
@@ -113,12 +112,12 @@ generation:
   experiment_notes: ""
 
 # ---------------------------------------------------------
-# 💾 Output Configuration
+# Output Configuration
 # Controls where experiment results are written on disk.
 # Paths are relative to the project root.
 # ---------------------------------------------------------
 output:
-  # Master metrics CSV (one row per dataset×model×prompt).
+  # Master metrics CSV (one row per dataset x model x prompt).
   results_csv: results/csv/metrics.csv
 
   # Interactive HTML report (charts, tables, filters).
@@ -128,13 +127,13 @@ output:
   run_root: results/runs
 
 # ---------------------------------------------------------
-# 🧱 Model Definitions
+# Model Definitions
 # Each entry describes one model that can be selected in
-# the GUI. “name” must match the actual Ollama tag or
-# HF model id, and “backend” controls which loader is used.
+# the GUI. "name" must match the actual Ollama tag or
+# HF model id, and "backend" controls which loader is used.
 # ---------------------------------------------------------
 models:
-  # Local Ollama models used in the paper's controlled study
+  # Local Ollama models used in the paper's controlled study.
   - name: mistral:latest
     backend: ollama
 
@@ -152,21 +151,21 @@ models:
     backend: ollama
 
 # ---------------------------------------------------------
-# 💬 Prompt Strategies
+# Prompt Strategies
 # Each string here maps to a prompt implementation under
-# prompts/ (e.g., prompts/zero_shot.py, prompts/cot.py).
+# prompts/ (for example, prompts/zero_shot.py, prompts/cot.py).
 # These show up as selectable strategies in the GUI.
 # ---------------------------------------------------------
 prompts:
-  - zero_shot        # Single-pass classification, no examples
-  - few_shot         # Uses small labeled examples in the prompt
-  - cot              # Chain-of-thought style reasoning
-  - adaptive_cot     # Chooses when to use CoT based on context
-  - self_consistency # Multiple sampled chains with voting
-  - self_verification # Adds a self-check / revision step before the final verdict
+  - zero_shot         # Single-pass classification, no examples
+  - few_shot          # Uses small labeled examples in the prompt
+  - cot               # Chain-of-thought style reasoning
+  - adaptive_cot      # Chooses when to use CoT based on context
+  - self_consistency  # Multiple sampled chains with voting
+  - self_verification # Adds a self-check step before the final verdict
 
 # ---------------------------------------------------------
-# 🧪 Ablation Controls
+# Ablation Controls
 # These define which protocol/parser variants the GUI can
 # expose and which ones are selected by default.
 # ---------------------------------------------------------
@@ -177,17 +176,17 @@ ablations:
   default_parser_modes: [full]
 
 # ---------------------------------------------------------
-# 💾 Datasets
+# Datasets
 # Each dataset name corresponds to a loader in
-# code_datasets/dataset_loader.py (e.g., “toy”, “cvefixes”).
+# code_datasets/dataset_loader.py (for example, "toy", "cvefixes").
 # ---------------------------------------------------------
 datasets:
   # Small mixed-language function-level dataset for smoke tests and demos.
   - name: toy
     source: local
     path: data/toy.csv
-  
-  # local dataset pointing to CVE code files
+
+  # Local dataset pointing to CVE code files.
   - name: cvefixes_local
     source: local
     path: data/CVE_Dataset/cve_code_files/
@@ -195,21 +194,20 @@ datasets:
   - name: cvefixes_50
     source: local
     path: data/cve_code_50/
-    
+
   - name: cvefixes_100
     source: local
     path: data/cve_code_100/
-    
+
   - name: cvefixes_500
     source: local
     path: data/cve_code_500/
-    
+
   - name: cvefixes_1000
     source: local
     path: data/cve_code_1000/
 
-  # Hugging Face–backed datasets (loaded by name in the loader).
-
+  # Hugging Face-backed datasets (loaded by name in the loader).
   - name: bigvul
     source: hf
 
@@ -217,7 +215,7 @@ datasets:
     source: hf
 
 # ---------------------------------------------------------
-# 📊 Metrics
+# Metrics
 # Controls which aggregate metrics are included in the
 # CSV and HTML reports. Under the hood, Metrics.to_dict()
 # must provide these keys.
@@ -226,9 +224,9 @@ metrics:
   include: ["Accuracy", "Precision", "Recall", "F1", "Coverage", "AbstentionRate", "EffectiveF1"]
 
 # ---------------------------------------------------------
-# 🌐 API Configuration (Optional)
+# API Configuration (Optional)
 # Only used if an external API backend is wired up in
-# models/model_loader.py (e.g., OpenAI, other providers).
+# models/model_loader.py (for example, OpenAI or other providers).
 # ---------------------------------------------------------
 api:
   api_host: https://api.openai.com

@@ -1,7 +1,8 @@
 """Transformers backend for local Hugging Face model inference."""
 
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
 from .base import BaseModel
 
 
@@ -10,17 +11,17 @@ class HFModel(BaseModel):
 
     def __init__(self, name: str, gen_cfg: dict):
         """
-        Load tokenizer + model weights from HuggingFace.
+        Load tokenizer + model weights from Hugging Face.
 
         Args:
             name (str):
-                Model identifier from HuggingFace Hub, e.g.:
+                Model identifier from Hugging Face Hub, for example:
                 - "mistral-7b-instruct"
                 - "codellama/CodeLlama-7b-Instruct"
                 - "google/gemma-2b"
 
             gen_cfg (dict):
-                Dictionary of generation settings (temperature, top_p, etc.)
+                Dictionary of generation settings (temperature, top_p, etc.).
 
         Behavior:
             - Automatically detects GPU (cuda) vs CPU.
@@ -31,18 +32,10 @@ class HFModel(BaseModel):
 
         print(f"[HFModel] Loading {name}...")
 
-        # Load pretrained tokenizer + causal LM
         self.tokenizer = AutoTokenizer.from_pretrained(name)
         self.model = AutoModelForCausalLM.from_pretrained(name)
-
-        # Pick GPU if available, else CPU.
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        # Move weights to appropriate device.
-        # I ignore Pylance complaints because HF models use dynamic typing.
         self.model = self.model.to(self.device)  # type: ignore
-
-        # eval() disables dropout + training-only layers.
         self.model.eval()
 
     def generate(self, prompt: str) -> str:
@@ -61,16 +54,10 @@ class HFModel(BaseModel):
             - Optional stop sequence truncation (same behavior as API/Ollama backends).
         """
 
-        # ---------------------------------------------------------------
-        # Optional: set RNG seed for reproducible outputs
-        # ---------------------------------------------------------------
         if "seed" in self.gen_cfg:
             torch.manual_seed(int(self.gen_cfg["seed"]))
 
-        # Tokenize the input prompt and move tensors to the target device.
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
-
-        # Generation settings (mirrors HF's .generate kwargs)
         gen_args = {
             "temperature": self.gen_cfg.get("temperature", 0.2),
             "top_p": self.gen_cfg.get("top_p", 0.9),
@@ -78,32 +65,21 @@ class HFModel(BaseModel):
             "max_new_tokens": self.gen_cfg.get("max_new_tokens", 100),
             "repetition_penalty": self.gen_cfg.get("repetition_penalty", 1.0),
             "num_beams": self.gen_cfg.get("num_beams", 1),
-            # If temperature > 0 → sampling mode; if 0 → greedy decoding.
+            # If temperature > 0, use sampling mode; if 0, use greedy decoding.
             "do_sample": self.gen_cfg.get("temperature", 0.2) > 0,
-            # Ensures padding doesn't break decode.
             "pad_token_id": self.tokenizer.eos_token_id,
         }
 
-        # ---------------------------------------------------------------
-        # Generate output (disable gradient computations for speed)
-        # ---------------------------------------------------------------
         with torch.no_grad():
             outputs = self.model.generate(**inputs, **gen_args)
 
-        # Decode only the newly generated continuation so downstream parsing
-        # does not accidentally see the prompt instructions as model output.
         prompt_len = inputs["input_ids"].shape[-1]
         generated_ids = outputs[0][prompt_len:]
         text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
 
-        # ---------------------------------------------------------------
-        # Optional manual stop-sequence truncation
-        # ---------------------------------------------------------------
-        # This ensures consistent behavior with API/Ollama backends.
         stop_list = self.gen_cfg.get("stop_sequences", [])
         for stop in stop_list:
             if stop in text:
-                # Keep only everything before the stop token (plus the stop itself)
                 text = text.split(stop)[0] + stop
                 break
 

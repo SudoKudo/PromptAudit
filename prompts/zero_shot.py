@@ -12,11 +12,13 @@ class ZeroShot(BasePrompt):
     # Single zero-shot template:
     #   - Assigns the model a security auditing role.
     #   - Asks it to examine the code and consider security implications.
-    #   - DOES NOT specify the exact SAFE/VULNERABLE output format; the runner
-    #     will add the strict first-line instructions.
+    #   - Does not specify the exact SAFE/VULNERABLE output format; the runner
+    #     appends the active verdict-placement protocol.
     template = (
         "You are a secure code auditor. Examine the following code and determine "
         "whether it is secure or vulnerable to potential exploits.\n"
+        "Do not use step-by-step reasoning unless the selected prompt strategy explicitly asks for it.\n"
+        "If you include any explanation, keep it brief.\n"
         "Briefly consider issues such as buffer overflows, injections, improper "
         "validation, and other common weaknesses.\n\n"
         "{code}\n\n"
@@ -39,7 +41,7 @@ class ZeroShot(BasePrompt):
         Returns:
             str:
                 A fully formatted prompt string. The ExperimentRunner will:
-                    - Append the strict SAFE/VULNERABLE task instructions.
+                    - Append the active SAFE/VULNERABLE output-protocol instructions.
                     - Call model.generate(full_prompt).
                     - Feed the raw output to parse_verdict().
         """
