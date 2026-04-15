@@ -90,10 +90,12 @@ class ExperimentRunner:
         self.selected_prompts = []
         self.selected_output_protocols = []
         self.selected_parser_modes = []
-        self.progress = progress or (lambda msg: print(msg))
+        self.progress_callback = progress or (lambda msg: print(msg))
+        self.progress = self._emit_progress
         self.records = []
         self.start_time = None
         self.debug_raw_outputs = bool(self.cfg.get("debug_raw_outputs", True))
+        self.save_debug_log = bool(perf_cfg.get("save_debug_log", False))
         self.current_run_id = None
         self.output_dir = None
         self.metrics_csv_path = None
@@ -101,6 +103,7 @@ class ExperimentRunner:
         self.predictions_dir = None
         self.records_jsonl_path = None
         self.checkpoint_path = None
+        self.debug_log_path = None
         self.current_combo_state = None
         self.final_status = "idle"
         self.cache_models = bool(perf_cfg.get("cache_models", True))
@@ -119,6 +122,25 @@ class ExperimentRunner:
             keep_display_awake=self.keep_display_awake,
         )
         self._power_support_reported = False
+
+    def _should_write_debug_log(self):
+        """Return True when run monitor messages should also be persisted to debug.log."""
+        return bool(self.debug_raw_outputs and self.save_debug_log and self.debug_log_path)
+
+    def _emit_progress(self, msg):
+        """Forward progress to the UI and optionally mirror it to a per-run debug log."""
+        self.progress_callback(msg)
+        if not self._should_write_debug_log():
+            return
+
+        try:
+            os.makedirs(os.path.dirname(self.debug_log_path), exist_ok=True)
+            timestamp = datetime.now().isoformat(timespec="seconds")
+            with open(self.debug_log_path, "a", encoding="utf-8") as f:
+                f.write(f"[{timestamp}] {msg}\n")
+        except Exception:
+            # Never let debug-log persistence interfere with the active run.
+            pass
 
     @staticmethod
     def find_latest_resumable_checkpoint(cfg):
@@ -352,6 +374,7 @@ class ExperimentRunner:
         self.predictions_dir = os.path.join(self.output_dir, "predictions")
         self.records_jsonl_path = os.path.join(self.output_dir, "records.jsonl")
         self.checkpoint_path = os.path.join(self.output_dir, "checkpoint.json")
+        self.debug_log_path = os.path.join(self.output_dir, "debug.log")
 
     def _start_new_run_state(
         self,
@@ -369,6 +392,8 @@ class ExperimentRunner:
         self.records = []
         self.current_combo_state = None
         self.progress(f"Artifacts for this run will be written to {self.output_dir}")
+        if self._should_write_debug_log():
+            self.progress(f"Verbose debug log will be written to {self.debug_log_path}")
         self._save_checkpoint(
             status="running",
             selected_datasets=selected_datasets,
@@ -390,6 +415,7 @@ class ExperimentRunner:
         self.predictions_dir = state["predictions_dir"]
         self.records_jsonl_path = state["records_jsonl_path"]
         self.checkpoint_path = checkpoint_path
+        self.debug_log_path = state.get("debug_log_path") or os.path.join(self.output_dir, "debug.log")
         self.current_combo_state = state.get("current_combo")
         self.final_status = state.get("status", "running")
         self.records = self._load_records_jsonl()
@@ -418,6 +444,7 @@ class ExperimentRunner:
             "report_html_path": self.report_html_path,
             "predictions_dir": self.predictions_dir,
             "records_jsonl_path": self.records_jsonl_path,
+            "debug_log_path": self.debug_log_path,
             "updated_at": datetime.now().isoformat(timespec="seconds"),
             "selected_datasets": selected_datasets or self.selected_datasets,
             "selected_models": selected_models or self.selected_models,
@@ -425,6 +452,7 @@ class ExperimentRunner:
             "selected_output_protocols": selected_output_protocols or self.selected_output_protocols,
             "selected_parser_modes": selected_parser_modes or self.selected_parser_modes,
             "gen_cfg": self.gen_cfg,
+            "save_debug_log": self.save_debug_log,
             "current_combo": self.current_combo_state,
         }
         os.makedirs(os.path.dirname(self.checkpoint_path), exist_ok=True)
@@ -525,6 +553,8 @@ class ExperimentRunner:
                 self.gen_cfg.update(state.get("gen_cfg", {}))
                 resume_state = self.current_combo_state
                 self.progress(f"Resuming run from {resume_checkpoint}")
+                if self._should_write_debug_log():
+                    self.progress(f"Verbose debug log will be appended to {self.debug_log_path}")
             else:
                 selected_output_protocols = selected_output_protocols or self._default_output_protocols()
                 selected_parser_modes = selected_parser_modes or self._default_parser_modes()

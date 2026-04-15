@@ -274,6 +274,9 @@ class Code2Dashboard(tb.Window):
         self.var_debug_raw_outputs = IntVar(
             value=1 if self.prefs.get("debug_raw_outputs", self.cfg.get("debug_raw_outputs", False)) else 0
         )
+        self.var_save_debug_log = IntVar(
+            value=1 if self.prefs.get("save_debug_log", perf_cfg.get("save_debug_log", False)) else 0
+        )
         self.var_checkpoint_every_n_samples = IntVar(
             value=int(self.prefs.get("checkpoint_every_n_samples", perf_cfg.get("checkpoint_every_n_samples", 10)))
         )
@@ -731,7 +734,7 @@ class Code2Dashboard(tb.Window):
             perf,
             text="Verbose debug logging",
             variable=self.var_debug_raw_outputs,
-            command=self._persist_prefs,
+            command=self._on_toggle_debug_controls,
         )
         self.chk_debug.grid(row=0, column=0, columnspan=2, sticky="w", padx=4, pady=2)
         ToolTip(
@@ -739,8 +742,20 @@ class Code2Dashboard(tb.Window):
             text="Log raw prompts and model outputs. Useful for debugging, but slower and much noisier.",
         )
 
+        self.chk_save_debug_log = tb.Checkbutton(
+            perf,
+            text="Save debug log to file",
+            variable=self.var_save_debug_log,
+            command=self._persist_prefs,
+        )
+        self.chk_save_debug_log.grid(row=1, column=0, columnspan=2, sticky="w", padx=24, pady=2)
+        ToolTip(
+            self.chk_save_debug_log,
+            text="When verbose debug logging is enabled, also save the run monitor log to debug.log in the run folder.",
+        )
+
         lbl_ckpt_samples = tb.Label(perf, text="Checkpoint every N samples")
-        lbl_ckpt_samples.grid(row=1, column=0, sticky="w", padx=4, pady=4)
+        lbl_ckpt_samples.grid(row=2, column=0, sticky="w", padx=4, pady=4)
         ToolTip(
             lbl_ckpt_samples,
             text="How often to persist in-progress combo state. Higher values reduce disk I/O. 0 disables sample-count checkpointing.",
@@ -753,12 +768,12 @@ class Code2Dashboard(tb.Window):
             width=10,
             command=self._schedule_persist_prefs,
         )
-        self.spin_ckpt_samples.grid(row=1, column=1, sticky="w", padx=4)
+        self.spin_ckpt_samples.grid(row=2, column=1, sticky="w", padx=4)
         self.spin_ckpt_samples.bind("<FocusOut>", self._schedule_persist_prefs)
         self.spin_ckpt_samples.bind("<Return>", self._schedule_persist_prefs)
 
         lbl_ckpt_secs = tb.Label(perf, text="Checkpoint every N seconds")
-        lbl_ckpt_secs.grid(row=2, column=0, sticky="w", padx=4, pady=4)
+        lbl_ckpt_secs.grid(row=3, column=0, sticky="w", padx=4, pady=4)
         ToolTip(
             lbl_ckpt_secs,
             text="Time-based checkpoint cadence. Useful protection for long samples. 0 disables time-based checkpointing.",
@@ -772,12 +787,12 @@ class Code2Dashboard(tb.Window):
             width=10,
             command=self._schedule_persist_prefs,
         )
-        self.spin_ckpt_secs.grid(row=2, column=1, sticky="w", padx=4)
+        self.spin_ckpt_secs.grid(row=3, column=1, sticky="w", padx=4)
         self.spin_ckpt_secs.bind("<FocusOut>", self._schedule_persist_prefs)
         self.spin_ckpt_secs.bind("<Return>", self._schedule_persist_prefs)
 
         lbl_progress_every = tb.Label(perf, text="Progress update every N samples")
-        lbl_progress_every.grid(row=3, column=0, sticky="w", padx=4, pady=4)
+        lbl_progress_every.grid(row=4, column=0, sticky="w", padx=4, pady=4)
         ToolTip(
             lbl_progress_every,
             text="Throttle GUI/log progress updates on large runs. Higher values reduce UI chatter.",
@@ -790,12 +805,12 @@ class Code2Dashboard(tb.Window):
             width=10,
             command=self._schedule_persist_prefs,
         )
-        self.spin_progress_every.grid(row=3, column=1, sticky="w", padx=4)
+        self.spin_progress_every.grid(row=4, column=1, sticky="w", padx=4)
         self.spin_progress_every.bind("<FocusOut>", self._schedule_persist_prefs)
         self.spin_progress_every.bind("<Return>", self._schedule_persist_prefs)
 
         lbl_sc_delay = tb.Label(perf, text="SC vote delay (seconds)")
-        lbl_sc_delay.grid(row=4, column=0, sticky="w", padx=4, pady=4)
+        lbl_sc_delay.grid(row=5, column=0, sticky="w", padx=4, pady=4)
         ToolTip(
             lbl_sc_delay,
             text="Optional delay between self-consistency votes. Keep at 0 for local speed unless a backend needs pacing.",
@@ -809,7 +824,7 @@ class Code2Dashboard(tb.Window):
             width=10,
             command=self._schedule_persist_prefs,
         )
-        self.spin_sc_delay.grid(row=4, column=1, sticky="w", padx=4)
+        self.spin_sc_delay.grid(row=5, column=1, sticky="w", padx=4)
         self.spin_sc_delay.bind("<FocusOut>", self._schedule_persist_prefs)
         self.spin_sc_delay.bind("<Return>", self._schedule_persist_prefs)
 
@@ -819,7 +834,7 @@ class Code2Dashboard(tb.Window):
             variable=self.var_prevent_system_sleep,
             command=self._on_toggle_sleep_controls,
         )
-        self.chk_prevent_sleep.grid(row=5, column=0, columnspan=2, sticky="w", padx=4, pady=(6, 2))
+        self.chk_prevent_sleep.grid(row=6, column=0, columnspan=2, sticky="w", padx=4, pady=(6, 2))
         ToolTip(
             self.chk_prevent_sleep,
             text="Keep the machine awake while a run is active. Released on pause, stop, and completion.",
@@ -831,7 +846,7 @@ class Code2Dashboard(tb.Window):
             variable=self.var_keep_display_awake,
             command=self._persist_prefs,
         )
-        self.chk_keep_display.grid(row=6, column=0, columnspan=2, sticky="w", padx=24, pady=2)
+        self.chk_keep_display.grid(row=7, column=0, columnspan=2, sticky="w", padx=24, pady=2)
         ToolTip(
             self.chk_keep_display,
             text="Also prevent the monitor from sleeping while the run is active.",
@@ -962,6 +977,7 @@ class Code2Dashboard(tb.Window):
             "sc_samples": int(self.var_sc_samples.get()),
             "seed": int(self.var_seed.get()) if hasattr(self, "var_seed") else 42,
             "debug_raw_outputs": bool(self.var_debug_raw_outputs.get()),
+            "save_debug_log": bool(self.var_save_debug_log.get()),
             "checkpoint_every_n_samples": int(self.var_checkpoint_every_n_samples.get()),
             "checkpoint_every_seconds": float(self.var_checkpoint_every_seconds.get()),
             "progress_every_n_samples": int(self.var_progress_every_n_samples.get()),
@@ -1045,6 +1061,8 @@ class Code2Dashboard(tb.Window):
                 self.var_seed.set(int(data.get("seed", self.var_seed.get())))
             if hasattr(self, "var_debug_raw_outputs"):
                 self.var_debug_raw_outputs.set(1 if data.get("debug_raw_outputs", bool(self.var_debug_raw_outputs.get())) else 0)
+            if hasattr(self, "var_save_debug_log"):
+                self.var_save_debug_log.set(1 if data.get("save_debug_log", bool(self.var_save_debug_log.get())) else 0)
             if hasattr(self, "var_checkpoint_every_n_samples"):
                 self.var_checkpoint_every_n_samples.set(
                     int(data.get("checkpoint_every_n_samples", self.var_checkpoint_every_n_samples.get()))
@@ -1084,10 +1102,18 @@ class Code2Dashboard(tb.Window):
             self._log(f"Failed to load preset: {e}")
 
     def _refresh_performance_controls(self):
-        """Enable or disable dependent performance controls based on sleep settings."""
+        """Enable or disable dependent performance controls based on related toggles."""
+        if hasattr(self, "chk_save_debug_log"):
+            debug_state = "normal" if self.var_debug_raw_outputs.get() else "disabled"
+            self.chk_save_debug_log.configure(state=debug_state)
         if hasattr(self, "chk_keep_display"):
             state = "normal" if self.var_prevent_system_sleep.get() else "disabled"
             self.chk_keep_display.configure(state=state)
+
+    def _on_toggle_debug_controls(self):
+        """Refresh dependent debug controls and persist the current choice."""
+        self._refresh_performance_controls()
+        self._persist_prefs()
 
     def _on_toggle_sleep_controls(self):
         """Refresh dependent sleep controls and persist the current choice."""
@@ -1287,6 +1313,7 @@ class Code2Dashboard(tb.Window):
             runner_cfg["debug_raw_outputs"] = bool(self.var_debug_raw_outputs.get())
             runner_cfg.setdefault("performance", {})
             runner_cfg["performance"].update({
+                "save_debug_log": bool(self.var_save_debug_log.get()),
                 "checkpoint_every_n_samples": int(self.var_checkpoint_every_n_samples.get()),
                 "checkpoint_every_seconds": float(self.var_checkpoint_every_seconds.get()),
                 "progress_every_n_samples": int(self.var_progress_every_n_samples.get()),

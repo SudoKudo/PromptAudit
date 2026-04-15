@@ -28,6 +28,10 @@ performance:
   # Prompt objects are lightweight, but caching avoids repeated imports.
   cache_prompts: true
 
+  # When verbose debug logging is enabled, also persist the run monitor
+  # log to results/runs/<run_id>/debug.log for later inspection.
+  save_debug_log: false
+
   # Checkpoint progress periodically instead of rewriting checkpoint.json
   # after every sample.
   checkpoint_every_n_samples: 10

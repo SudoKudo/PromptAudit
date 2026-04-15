@@ -65,6 +65,7 @@ class FewShot(BasePrompt):
 
     # Logical name for this strategy (used in configs and reporting).
     name = "few_shot"
+    code_placeholder = "<<TARGET_CODE>>"
 
     # Single canonical few-shot template:
     #   - Shows EXAMPLES with labels.
@@ -77,7 +78,7 @@ class FewShot(BasePrompt):
         "If you include any explanation, keep it brief.\n\n"
         f"{EXAMPLES}\n"
         "Now analyze this code from a security perspective:\n\n"
-        "{code}\n\n"
+        "<<TARGET_CODE>>\n\n"
     )
 
     def apply(self, model, code, gen_cfg):
@@ -105,4 +106,4 @@ class FewShot(BasePrompt):
                     - Call model.generate(full_prompt),
                     - Feed the raw output into parse_verdict().
         """
-        return self.template.format(code=code)
+        return self.template.replace(self.code_placeholder, code)
