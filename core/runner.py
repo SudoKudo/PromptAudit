@@ -143,6 +143,89 @@ class ExperimentRunner:
             pass
 
     @staticmethod
+    def _consume_model_generation_info(model):
+        """Return backend generation metadata for the most recent model call, if any."""
+        if hasattr(model, "consume_generation_info"):
+            try:
+                info = model.consume_generation_info()
+                return info if isinstance(info, dict) else {}
+            except Exception:
+                return {}
+        return {}
+
+    @staticmethod
+    def _clip_text(value, limit=240):
+        """Trim long debug strings so checkpoints stay readable and reasonably small."""
+        text = str(value or "")
+        return text if len(text) <= limit else text[:limit] + "..."
+
+    def _record_generation_anomaly(
+        self,
+        anomalies,
+        *,
+        sample_index,
+        total_samples,
+        dataset_name,
+        model_name,
+        prompt_name,
+        output_protocol,
+        parser_mode,
+        language,
+        gold,
+        code,
+        prompt_text,
+        reason,
+        generation_info=None,
+    ):
+        """Persist a compact anomaly record for empty responses or backend errors."""
+        generation_info = dict(generation_info or {})
+        event = {
+            "sample_id": sample_index + 1,
+            "total_samples": total_samples,
+            "dataset": dataset_name,
+            "model": model_name,
+            "prompt": prompt_name,
+            "output_protocol": output_protocol,
+            "parser_mode": parser_mode,
+            "language": language,
+            "gold": gold,
+            "reason": reason,
+            "code_chars": len(str(code or "")),
+            "prompt_chars": len(str(prompt_text or "")),
+            "generation_info": generation_info,
+        }
+        anomalies.append(event)
+        max_kept = 50
+        if len(anomalies) > max_kept:
+            del anomalies[:-max_kept]
+        return event
+
+    def _log_generation_anomaly(self, event):
+        """Emit a concise progress message describing a generation anomaly."""
+        generation_info = dict(event.get("generation_info") or {})
+        details = [
+            f"reason={event.get('reason')}",
+            f"sample={event.get('sample_id')}/{event.get('total_samples')}",
+            f"code_chars={event.get('code_chars')}",
+            f"prompt_chars={event.get('prompt_chars')}",
+        ]
+        for key in ("status", "http_status", "done_reason", "prompt_eval_count", "eval_count", "error_type"):
+            value = generation_info.get(key)
+            if value not in (None, "", []):
+                details.append(f"{key}={value}")
+        self.progress(
+            f"[WARN] Generation anomaly for {event.get('model')} on {event.get('dataset')} "
+            f"({event.get('prompt')} | {event.get('output_protocol')} | {event.get('parser_mode')}): "
+            + ", ".join(details)
+        )
+        preview = generation_info.get("response_text_preview") or generation_info.get("response_preview")
+        if preview:
+            self.progress(f"[WARN] Backend response preview: {self._clip_text(preview, limit=320)}")
+        message = generation_info.get("error_message")
+        if message:
+            self.progress(f"[WARN] Backend error detail: {self._clip_text(message, limit=320)}")
+
+    @staticmethod
     def find_latest_resumable_checkpoint(cfg):
         """Return the newest resumable checkpoint path, or None if none exist."""
         run_root = cfg.get("output", {}).get("run_root", "results/runs")
@@ -293,6 +376,7 @@ class ExperimentRunner:
         completed_samples = int(state.get("next_sample_index", len(preds)))
         metrics = MetricTracker.from_state(state.get("metrics_state")).to_dict()
         parse_tier_counts = dict(state.get("parse_tier_counts", {}))
+        generation_anomalies = list(state.get("generation_anomalies", []))
         language_meta = _language_metadata(preds)
 
         return {
@@ -311,6 +395,7 @@ class ExperimentRunner:
             "params": self.gen_cfg.copy(),
             "label_protocol": output_protocol,
             "parse_tier_counts": parse_tier_counts,
+            "generation_anomalies": generation_anomalies,
             "valid_samples": sum(1 for p in preds if p.get("pred") in ("safe", "vulnerable")),
             "completed_samples": completed_samples,
             "total_samples": total_samples,
@@ -678,7 +763,8 @@ class ExperimentRunner:
                 self.progress(f"All experiments finished in {elapsed:.1f} min")
                 self.progress("Run completed successfully")
 
-            self.current_combo_state = None
+            if self.final_status != "stopped":
+                self.current_combo_state = None
             self._save_checkpoint(status=self.final_status)
             return self.final_status
         finally:
@@ -718,6 +804,7 @@ class ExperimentRunner:
         m = MetricTracker.from_state(resume_state.get("metrics_state")) if resume_state else MetricTracker()
         preds = list(resume_state.get("preds", [])) if resume_state else []
         parse_tier_counts = dict(resume_state.get("parse_tier_counts", {})) if resume_state else {}
+        generation_anomalies = list(resume_state.get("generation_anomalies", [])) if resume_state else []
         total = len(dataset)
         start_index = int(resume_state.get("next_sample_index", 0)) if resume_state else 0
         start_index = max(0, min(start_index, total))
@@ -735,6 +822,7 @@ class ExperimentRunner:
             "preds": preds,
             "metrics_state": m.to_dict(),
             "parse_tier_counts": parse_tier_counts,
+            "generation_anomalies": generation_anomalies,
             "total_samples": total,
         }
         self._save_checkpoint(status="running")
@@ -767,6 +855,9 @@ class ExperimentRunner:
                 code, gold = str(sample), "unknown"
                 language = "unknown"
 
+            prompt_text = None
+            generation_info = {}
+            anomaly_logged = False
             try:
                 if hasattr(prompt_obj, "apply_with_context"):
                     result = prompt_obj.apply_with_context(
@@ -780,14 +871,15 @@ class ExperimentRunner:
                     result = prompt_obj.apply(model, code, gen_cfg)
 
                 if isinstance(result, str) and not returns_label:
-                    result = result.rstrip() + build_output_instruction(output_protocol)
+                    prompt_text = result.rstrip() + build_output_instruction(output_protocol)
                     if self.debug_raw_outputs and idx == start_index:
                         self.progress(
                             "[DEBUG] Prompt sent to model.generate(...) "
                             f"(model={model_name}, sample={idx + 1}/{total}, "
-                            f"type={type(result)}): {repr(result[:300])}"
+                            f"type={type(prompt_text)}): {repr(prompt_text[:300])}"
                         )
-                    pred = model.generate(result)
+                    pred = model.generate(prompt_text)
+                    generation_info = self._consume_model_generation_info(model)
                     if self.debug_raw_outputs and idx < min(total, start_index + 3):
                         self.progress(
                             "[DEBUG] Raw output from model.generate(...) "
@@ -805,13 +897,40 @@ class ExperimentRunner:
                     pred = result.get("label", "unknown")
                     pred_label = str(result.get("label", "unknown")).strip().lower()
                     parse_tier = result.get("parse_tier") or result.get("tier") or "unknown"
+                    generation_info = result.get("generation_info") or self._consume_model_generation_info(model)
+                    structured_anomalies = list(result.get("generation_anomalies", []))
                     if self.debug_raw_outputs and idx < min(total, start_index + 3):
                         self.progress(
                             "[DEBUG] Structured output from prompt strategy "
                             f"(model={model_name}, sample={idx + 1}/{total}): {repr(result)[:300]}"
                         )
+                    if structured_anomalies:
+                        for anomaly in structured_anomalies:
+                            anomaly_info = dict(anomaly.get("generation_info") or {})
+                            vote_index = anomaly.get("vote_index")
+                            if vote_index not in (None, ""):
+                                anomaly_info["vote_index"] = vote_index
+                            event = self._record_generation_anomaly(
+                                generation_anomalies,
+                                sample_index=idx,
+                                total_samples=total,
+                                dataset_name=dataset_name,
+                                model_name=model_name,
+                                prompt_name=prompt_name,
+                                output_protocol=output_protocol,
+                                parser_mode=parser_mode,
+                                language=language,
+                                gold=gold,
+                                code=code,
+                                prompt_text=anomaly.get("prompt_text"),
+                                reason=anomaly.get("reason", "structured_generation_anomaly"),
+                                generation_info=anomaly_info,
+                            )
+                            self._log_generation_anomaly(event)
+                        anomaly_logged = True
                 else:
                     pred = result
+                    generation_info = self._consume_model_generation_info(model)
                     if self.debug_raw_outputs and idx < min(total, start_index + 3):
                         self.progress(
                             "[DEBUG] Raw output from prompt strategy "
@@ -830,9 +949,50 @@ class ExperimentRunner:
                 pred = ""
                 pred_label = "unknown"
                 parse_tier = "unknown"
+                generation_info = self._consume_model_generation_info(model)
+                event = self._record_generation_anomaly(
+                    generation_anomalies,
+                    sample_index=idx,
+                    total_samples=total,
+                    dataset_name=dataset_name,
+                    model_name=model_name,
+                    prompt_name=prompt_name,
+                    output_protocol=output_protocol,
+                    parser_mode=parser_mode,
+                    language=language,
+                    gold=gold,
+                    code=code,
+                    prompt_text=prompt_text,
+                    reason="generation_exception",
+                    generation_info={
+                        **generation_info,
+                        "status": generation_info.get("status") or "error",
+                        "error_type": type(e).__name__,
+                        "error_message": str(e),
+                    },
+                )
+                self._log_generation_anomaly(event)
+                anomaly_logged = True
 
-            if not pred:
+            if not pred and not anomaly_logged:
+                event = self._record_generation_anomaly(
+                    generation_anomalies,
+                    sample_index=idx,
+                    total_samples=total,
+                    dataset_name=dataset_name,
+                    model_name=model_name,
+                    prompt_name=prompt_name,
+                    output_protocol=output_protocol,
+                    parser_mode=parser_mode,
+                    language=language,
+                    gold=gold,
+                    code=code,
+                    prompt_text=prompt_text,
+                    reason="empty_response",
+                    generation_info=generation_info,
+                )
                 self.progress(f"Empty response for sample {idx + 1}, will treat as UNKNOWN verdict")
+                self._log_generation_anomaly(event)
 
             m.add(gold, pred_label)
             parse_tier_counts[parse_tier] = parse_tier_counts.get(parse_tier, 0) + 1
@@ -858,6 +1018,7 @@ class ExperimentRunner:
                 "preds": preds,
                 "metrics_state": m.to_dict(),
                 "parse_tier_counts": parse_tier_counts,
+                "generation_anomalies": generation_anomalies,
                 "total_samples": total,
             }
             # Keep the resumable checkpoint lightweight most of the time and
@@ -898,6 +1059,7 @@ class ExperimentRunner:
             "params": gen_cfg,
             "label_protocol": output_protocol,
             "parse_tier_counts": parse_tier_counts,
+            "generation_anomalies": generation_anomalies,
             "valid_samples": sum(1 for p in preds if p["pred"] in ("safe", "vulnerable")),
             "completed_samples": total,
             "total_samples": total,

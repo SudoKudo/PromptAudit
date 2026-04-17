@@ -28,6 +28,21 @@ class BaseModel:
         """
         self.name = name
         self.gen_cfg = gen_cfg
+        self._last_generation_info = {}
+
+    def _set_generation_info(self, info):
+        """Record backend-specific metadata for the most recent generation call."""
+        self._last_generation_info = dict(info or {})
+
+    def get_generation_info(self):
+        """Return a copy of the most recent generation metadata without clearing it."""
+        return dict(self._last_generation_info or {})
+
+    def consume_generation_info(self):
+        """Return and clear the most recent generation metadata."""
+        info = self.get_generation_info()
+        self._last_generation_info = {}
+        return info
 
     def generate(self, prompt):
         """

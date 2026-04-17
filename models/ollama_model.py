@@ -1,6 +1,7 @@
 """Ollama backend for local PromptAudit inference runs."""
 
 import requests
+
 from .base import BaseModel
 
 
@@ -40,15 +41,7 @@ class OllamaModel(BaseModel):
                 }
         """
 
-        # ------------------------------------------------------------------
-        # Ollama local HTTP endpoint
-        # ------------------------------------------------------------------
-        # url = "http://127.0.0.1:11434/api/generate"
         url = "http://127.0.0.1:11434/api/generate"
-
-        # ------------------------------------------------------------------
-        # Build generation options (fully compatible with Ollama spec)
-        # ------------------------------------------------------------------
         options = {
             "temperature": self.gen_cfg.get("temperature", 0.2),
             "top_p": self.gen_cfg.get("top_p", 0.9),
@@ -57,37 +50,93 @@ class OllamaModel(BaseModel):
             "repeat_penalty": self.gen_cfg.get("repetition_penalty", 1.0),
             "seed": self.gen_cfg.get("seed", 42),
         }
-
-        # ------------------------------------------------------------------
-        # Full request payload
-        # ------------------------------------------------------------------
         payload = {
-            "model": self.name,      # Model name in Ollama (e.g., "gemma:7b")
+            "model": self.name,
             "prompt": prompt,
             "options": options,
-            "stream": False,         # Disable streaming for simplified processing
+            "stream": False,
         }
 
         keep_alive = self.gen_cfg.get("ollama_keep_alive")
         if keep_alive:
             payload["keep_alive"] = keep_alive
 
-        # Optional stop sequences (["SAFE", "VULNERABLE"], etc.)
         if stop_list := self.gen_cfg.get("stop_sequences"):
             payload["options"]["stop"] = stop_list
 
-        try:
-            # Reuse one HTTP session so localhost connections stay warm across samples.
-            response = self.session.post(url, json=payload, timeout=300)
+        prompt_chars = len(str(prompt or ""))
+        self._set_generation_info(
+            {
+                "backend": "ollama",
+                "model": self.name,
+                "endpoint": url,
+                "prompt_chars": prompt_chars,
+                "num_predict": options.get("num_predict"),
+                "temperature": options.get("temperature"),
+                "top_p": options.get("top_p"),
+                "top_k": options.get("top_k"),
+                "seed": options.get("seed"),
+                "status": "pending",
+            }
+        )
 
-            # Raise an exception for any HTTP error (4xx or 5xx)
+        response = None
+        try:
+            response = self.session.post(url, json=payload, timeout=300)
             response.raise_for_status()
 
-            # Ollama responds with JSON containing "response" text
             data = response.json()
-            return data.get("response", "").strip()
+            raw_response = data.get("response", "")
+            text = str(raw_response or "").strip()
+            self._set_generation_info(
+                {
+                    "backend": "ollama",
+                    "model": self.name,
+                    "endpoint": url,
+                    "prompt_chars": prompt_chars,
+                    "response_chars": len(text),
+                    "raw_response_chars": len(str(raw_response or "")),
+                    "http_status": response.status_code,
+                    "done": data.get("done"),
+                    "done_reason": data.get("done_reason"),
+                    "total_duration": data.get("total_duration"),
+                    "load_duration": data.get("load_duration"),
+                    "prompt_eval_count": data.get("prompt_eval_count"),
+                    "prompt_eval_duration": data.get("prompt_eval_duration"),
+                    "eval_count": data.get("eval_count"),
+                    "eval_duration": data.get("eval_duration"),
+                    "num_predict": options.get("num_predict"),
+                    "temperature": options.get("temperature"),
+                    "top_p": options.get("top_p"),
+                    "top_k": options.get("top_k"),
+                    "seed": options.get("seed"),
+                    "response_preview": text[:240],
+                    "status": "ok" if text else "empty_response",
+                }
+            )
+            return text
 
         except Exception as e:
-            # Graceful failure: print error but return empty string
-            print(f"[OllamaModel] ❌ Generation failed: {e}")
+            error_info = {
+                "backend": "ollama",
+                "model": self.name,
+                "endpoint": url,
+                "prompt_chars": prompt_chars,
+                "num_predict": options.get("num_predict"),
+                "temperature": options.get("temperature"),
+                "top_p": options.get("top_p"),
+                "top_k": options.get("top_k"),
+                "seed": options.get("seed"),
+                "status": "error",
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            }
+            if response is not None:
+                error_info["http_status"] = getattr(response, "status_code", None)
+                try:
+                    error_info["response_text_preview"] = str(response.text or "")[:500]
+                except Exception:
+                    pass
+            self._set_generation_info(error_info)
+            print(f"[OllamaModel] Generation failed: {e}")
             return ""

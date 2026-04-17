@@ -38,20 +38,25 @@ class SelfConsistency(BasePrompt):
         vote_delay = max(0.0, float(gen_cfg.get("sc_vote_delay_seconds", 0.0)))
         votes = []
         unknown_votes = 0
+        vote_anomalies = []
 
-        for _ in range(num_votes):
+        for vote_index in range(num_votes):
             details = self._generate_vote(
                 model,
                 code,
                 gen_cfg,
                 output_protocol,
                 parser_mode,
+                vote_index=vote_index,
             )
             label = details["label"]
             if label in {"safe", "vulnerable"}:
                 votes.append((label, details.get("tier") or "unknown"))
             else:
                 unknown_votes += 1
+            anomaly = details.get("generation_anomaly")
+            if anomaly:
+                vote_anomalies.append(anomaly)
 
             if vote_delay:
                 time.sleep(vote_delay)
@@ -63,6 +68,13 @@ class SelfConsistency(BasePrompt):
                 "vote_counts": {},
                 "valid_votes": 0,
                 "unknown_votes": unknown_votes or num_votes,
+                "generation_anomalies": vote_anomalies,
+                "generation_info": {
+                    "status": "sc_all_unknown",
+                    "valid_votes": 0,
+                    "unknown_votes": unknown_votes or num_votes,
+                    "anomaly_count": len(vote_anomalies),
+                },
             }
 
         label_counts = Counter(label for label, _tier in votes)
@@ -74,6 +86,13 @@ class SelfConsistency(BasePrompt):
                 "vote_counts": dict(label_counts),
                 "valid_votes": len(votes),
                 "unknown_votes": unknown_votes,
+                "generation_anomalies": vote_anomalies,
+                "generation_info": {
+                    "status": "sc_no_majority",
+                    "valid_votes": len(votes),
+                    "unknown_votes": unknown_votes,
+                    "anomaly_count": len(vote_anomalies),
+                },
             }
 
         winning_tiers = [tier for label, tier in votes if label == winning_label]
@@ -85,9 +104,27 @@ class SelfConsistency(BasePrompt):
             "vote_counts": dict(label_counts),
             "valid_votes": len(votes),
             "unknown_votes": unknown_votes,
+            "generation_anomalies": vote_anomalies,
+            "generation_info": {
+                "status": "sc_vote_complete",
+                "valid_votes": len(votes),
+                "unknown_votes": unknown_votes,
+                "anomaly_count": len(vote_anomalies),
+            },
         }
 
-    def _generate_vote(self, model, code, gen_cfg, output_protocol, parser_mode):
+    @staticmethod
+    def _consume_model_generation_info(model):
+        """Return backend generation metadata for the most recent vote, if any."""
+        if hasattr(model, "consume_generation_info"):
+            try:
+                info = model.consume_generation_info()
+                return info if isinstance(info, dict) else {}
+            except Exception:
+                return {}
+        return {}
+
+    def _generate_vote(self, model, code, gen_cfg, output_protocol, parser_mode, *, vote_index):
         """Generate one adaptive CoT vote using the active output protocol and parser mode."""
         prompt = self._adaptive_prompt.apply_with_context(
             model,
@@ -97,17 +134,30 @@ class SelfConsistency(BasePrompt):
             parser_mode=parser_mode,
         ).rstrip() + build_output_instruction(output_protocol)
         raw = super().apply(model, prompt, gen_cfg, raw_prompt=True)
+        generation_info = self._consume_model_generation_info(model)
         if not raw:
+            reason = "empty_response"
+            if generation_info.get("status") == "error":
+                reason = "generation_error"
             return {
                 "label": "unknown",
                 "tier": "unknown",
                 "parser_mode": parser_mode,
                 "output_protocol": output_protocol,
+                "generation_info": generation_info,
+                "generation_anomaly": {
+                    "vote_index": vote_index + 1,
+                    "reason": reason,
+                    "prompt_text": prompt,
+                    "generation_info": generation_info,
+                },
             }
 
-        return parse_verdict_details(
+        parsed = parse_verdict_details(
             raw,
             model_name=getattr(model, "name", "model"),
             mode=parser_mode,
             output_protocol=output_protocol,
         )
+        parsed["generation_info"] = generation_info
+        return parsed
