@@ -222,19 +222,19 @@ datasets:
 
   - name: bigvul_50
     source: local
-    path: data/bigvul/bigvul_50/
+    path: data/bigvul/bigvul_50.csv
 
   - name: bigvul_100
     source: local
-    path: data/bigvul/bigvul_100/
+    path: data/bigvul/bigvul_100.csv
 
   - name: bigvul_500
     source: local
-    path: data/bigvul/bigvul_500/
+    path: data/bigvul/bigvul_500.csv
 
   - name: bigvul_1000
     source: local
-    path: data/bigvul/bigvul_1000/
+    path: data/bigvul/bigvul_1000.csv
 
 # ---------------------------------------------------------
 # Metrics
