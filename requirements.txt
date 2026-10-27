@@ -1,5 +1,5 @@
 # Core application
-ttkbootstrap>=1.10.1
+ttkbootstrap>=1.10.1,<2
 PyYAML>=6.0
 requests>=2.31.0
 
