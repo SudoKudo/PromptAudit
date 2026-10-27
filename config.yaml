@@ -218,6 +218,24 @@ datasets:
   - name: vul4j
     source: hf
 
+  # Local dataset pointing to bigvul code files.
+
+  - name: bigvul_50
+    source: local
+    path: data/bigvul/bigvul_50/
+
+  - name: bigvul_100
+    source: local
+    path: data/bigvul/bigvul_100/
+
+  - name: bigvul_500
+    source: local
+    path: data/bigvul/bigvul_500/
+
+  - name: bigvul_1000
+    source: local
+    path: data/bigvul/bigvul_1000/
+
 # ---------------------------------------------------------
 # Metrics
 # Controls which aggregate metrics are included in the
