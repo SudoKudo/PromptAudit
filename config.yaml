@@ -1,5 +1,5 @@
 # =========================================================
-# PromptAudit v2.0 configuration
+# PromptAudit v3.0 configuration
 # Binary SAFE/VULNERABLE classification settings
 #
 # This file defines:
@@ -18,9 +18,21 @@ debug_raw_outputs: false  # Enable only when diagnosing prompt/output issues; it
 # ---------------------------------------------------------
 # Performance Controls
 # These reduce avoidable overhead in long runs without
-# changing the underlying model outputs.
+# changing prompts, voting rules, or metric formulas.
 # ---------------------------------------------------------
 performance:
+  # Portable default. Parallel requests currently support Ollama only.
+  inference_workers: 1
+
+  # Reuse identical successful requests on this computer.
+  response_cache: true
+  cache_root: results/cache
+  # Set a generic server-profile tag and an explicit context window to enable Ollama cross-run reuse.
+  cache_profile: ""
+
+  # Collect predictions now and run saved-result analysis later.
+  defer_analysis: false
+
   # Reuse backend objects across prompt/protocol/parser combos
   # within a single run. This especially helps HF models.
   cache_models: true
@@ -54,27 +66,37 @@ performance:
   # This can reduce repeated model load latency on long local runs.
   ollama_keep_alive: 30m
 
+# Saved-result analysis. These settings do not change model requests.
+analysis:
+  enabled: true
+  bootstrap_resamples: 1000
+  group_by: cve_id
+  paired_comparisons: true
+  rankings: true
+  prevalence: true
+  prevalence_size: 1000
+  prevalence_repeats: 20
+  output_audit: true
+  dataset_audit: true
+  review_case_limit: 50
+
 # ---------------------------------------------------------
 # Generation Configuration
 # These defaults are loaded at startup and then copied into
 # the runner. The GUI can override these values at runtime.
 # ---------------------------------------------------------
 generation:
-  # Controls randomness of the model output.
-  # Lower values (0.1-0.3) are more deterministic and stable.
+  # Sampling settings held fixed across matched conditions.
   temperature: 0.2
 
-  # Nucleus sampling: the model only samples from the top-p
-  # cumulative probability mass. 0.9 is a common default.
+  # Nucleus sampling threshold.
   top_p: 0.9
 
-  # Top-k sampling: restricts sampling to the k most likely
-  # next tokens. 40 is a conservative default.
+  # Maximum candidate-token count for top-k sampling.
   top_k: 40
 
-  # Maximum number of new tokens the model is allowed to
-  # generate. This limits answer length.
-  max_new_tokens: 250
+  # Maximum output budget, not a target length. Check completion in a real-model pilot.
+  max_new_tokens: 1024
 
   # Penalizes repeated tokens; > 1.0 pushes the model away
   # from repeating itself. 1.0 = no penalty.
@@ -101,12 +123,7 @@ generation:
   # but when honored it helps make runs repeatable.
   seed: 42
 
-  # Stop sequences passed to the backend by default.
-  # NOTE:
-  #   - The current runner logic may override this for some
-  #     SAFE/VULNERABLE pipelines (for example, using "\n").
-  #   - Leaving this empty here keeps the YAML neutral and
-  #     backend-agnostic.
+  # Stop strings passed to the backend; empty means no project-defined stops.
   stop_sequences: []
 
   # Optional experiment label shown in logs / report footer.
@@ -137,6 +154,10 @@ output:
 # HF model id, and "backend" controls which loader is used.
 # ---------------------------------------------------------
 models:
+  # Offline workflow checks; use pilot mode for matched studies.
+  - name: dummy
+    backend: dummy
+
   # Local Ollama models used in the paper's controlled study.
   - name: mistral:latest
     backend: ollama
@@ -190,26 +211,39 @@ datasets:
     source: local
     path: data/toy.csv
 
-  # Local dataset pointing to CVE code files.
-  - name: cvefixes_local
-    source: local
-    path: data/CVE_Dataset/cve_code_files/
-
+  # Local CVEFixes cohorts; CSVs preserve the existing folder-loader selections.
   - name: cvefixes_50
     source: local
-    path: data/cve_code_50/
+    path: data/cvefixes/cvefixes_50.csv.gz
 
   - name: cvefixes_100
     source: local
-    path: data/cve_code_100/
+    path: data/cvefixes/cvefixes_100.csv.gz
 
   - name: cvefixes_500
     source: local
-    path: data/cve_code_500/
+    path: data/cvefixes/cvefixes_500.csv.gz
 
   - name: cvefixes_1000
     source: local
-    path: data/cve_code_1000/
+    path: data/cvefixes/cvefixes_1000.csv.gz
+
+  # Local BigVul subsets; the numeric suffix counts CVEs, not code samples.
+  - name: bigvul_50
+    source: local
+    path: data/bigvul/bigvul_50.csv
+
+  - name: bigvul_100
+    source: local
+    path: data/bigvul/bigvul_100.csv
+
+  - name: bigvul_500
+    source: local
+    path: data/bigvul/bigvul_500.csv
+
+  - name: bigvul_1000
+    source: local
+    path: data/bigvul/bigvul_1000.csv
 
   # Hugging Face-backed datasets (loaded by name in the loader).
   - name: bigvul
@@ -219,21 +253,9 @@ datasets:
     source: hf
 
 # ---------------------------------------------------------
-# Metrics
-# Controls which aggregate metrics are included in the
-# CSV and HTML reports. Under the hood, Metrics.to_dict()
-# must provide these keys.
-# ---------------------------------------------------------
-metrics:
-  include: ["Accuracy", "Precision", "Recall", "F1", "Coverage", "AbstentionRate", "EffectiveF1"]
-
-# ---------------------------------------------------------
-# API Configuration (Optional)
-# Only used if an external API backend is wired up in
-# models/model_loader.py (for example, OpenAI or other providers).
+# Settings for the optional completion API backend.
 # ---------------------------------------------------------
 api:
   api_host: https://api.openai.com
-  # API key intentionally left blank; expected to be supplied
-  # via environment variable or secure secrets mechanism.
+  # Set PROMPTAUDIT_API_KEY or OPENAI_API_KEY in your environment.
   api_key: ""

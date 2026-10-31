@@ -14,7 +14,21 @@ Thumbs.db
 
 # Local GUI preferences
 ui/user_prefs.yaml
+ui/presets/
+
+# Temporary internal revision tracking
+/REVISION_LOG.md
+
+# Local credentials and assistant state
+.env
+.env.*
+!.env.example
+.secrets/
+.codex/
+*.pem
+*.key
+id_rsa
+id_ed25519
 
 # Generated experiment artifacts
-results/*
-!results/__init__.py
+results/

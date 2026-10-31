@@ -1,13 +1,13 @@
 """Few-shot prompt strategy with built-in labeled examples."""
 
-from .base_prompt import BasePrompt
+from .base_prompt import ROLE_INSTRUCTION, TASK_INSTRUCTION, BasePrompt, code_block
 
 
-# Few-shot labeled examples shown to the model before the new sample.
-# These are synthetic CVE-style before/after function snippets rather than
-# single-line API calls, so they better match the function-level patch data
-# used in PromptAudit without copying exact dataset rows into the prompt.
+# Fixed synthetic before/after examples, separate from the evaluation datasets.
 EXAMPLES = """Examples:
+For these two examples only, assume buf points to len readable bytes.
+Assess the buffer accesses shown under that assumption.
+
 Example 1 (before patch):
 Code:
 int parse_message(const unsigned char *buf, size_t len) {
@@ -47,63 +47,23 @@ Label: SAFE
 
 
 class FewShot(BasePrompt):
-    """
-    Few-shot prompt strategy.
+    """Show two labeled examples before asking for a direct classification."""
 
-    Behavior:
-        - Provides two labeled examples (one VULNERABLE, one SAFE).
-        - Then presents the new code snippet to be audited.
-        - Uses the examples to guide classification without requesting step-by-step reasoning.
-        - Returns ONLY the prompt string; the runner handles generation and
-          label parsing.
-
-    The runner will:
-        - Append the active SAFE/VULNERABLE output-protocol instruction.
-        - Call model.generate(full_prompt).
-        - Pass the raw model output into parse_verdict().
-    """
-
-    # Logical name for this strategy (used in configs and reporting).
     name = "few_shot"
     code_placeholder = "<<TARGET_CODE>>"
 
-    # Single canonical few-shot template:
-    #   - Shows EXAMPLES with labels.
-    #   - Then asks the model to analyze the new code.
-    #   - Output formatting is NOT constrained here; the runner adds that.
+    # The runner appends the selected verdict-placement instruction.
     template = (
+        f"{ROLE_INSTRUCTION}\n{TASK_INSTRUCTION}\n\n"
         "Use the examples below as prior knowledge for classifying code security.\n"
         "First, review the examples and their labels. Then analyze the new code snippet.\n\n"
-        "Do not use step-by-step reasoning unless the selected prompt strategy explicitly asks for it.\n"
-        "If you include any explanation, keep it brief.\n\n"
+        "Give a direct classification without a step-by-step explanation.\n"
+        "Return only the verdict word in the required position, without an explanation.\n\n"
         f"{EXAMPLES}\n"
         "Now analyze this code from a security perspective:\n\n"
         "<<TARGET_CODE>>\n\n"
     )
 
     def apply(self, model, code, gen_cfg):
-        """
-        Build and return the few-shot prompt string.
-
-        Args:
-            model:
-                Model object (not used directly here, but kept in the signature
-                for consistency with other strategies).
-            code (str):
-                The code snippet to classify.
-            gen_cfg (dict):
-                Generation configuration (temperature, stop sequences, etc.).
-                Not used here because this strategy does not call
-                model.generate() itself.
-
-        Returns:
-            str:
-                A fully formatted prompt string containing:
-                    - The labeled examples, and
-                    - The target code snippet to analyze.
-                The ExperimentRunner will:
-                    - Append SAFE/VULNERABLE task instructions,
-                    - Call model.generate(full_prompt),
-                    - Feed the raw output into parse_verdict().
-        """
-        return self.template.replace(self.code_placeholder, code)
+        """Insert the target code after the fixed examples."""
+        return self.template.replace(self.code_placeholder, code_block(code))

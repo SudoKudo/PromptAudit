@@ -1,0 +1,36 @@
+{
+  "extends": "../../tsconfigbase.test",
+  "include": ["src/**/*", "test/*"],
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable"]
+  },
+  "references": [
+    {
+      "path": "../apputils"
+    },
+    {
+      "path": "../coreutils"
+    },
+    {
+      "path": "../docregistry"
+    },
+    {
+      "path": "../observables"
+    },
+    {
+      "path": "../rendermime"
+    },
+    {
+      "path": "../translation"
+    },
+    {
+      "path": "../ui-components"
+    },
+    {
+      "path": "."
+    },
+    {
+      "path": "../testing"
+    }
+  ]
+}

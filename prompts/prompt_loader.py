@@ -8,14 +8,7 @@ from .self_consistency import SelfConsistency
 from .self_verification import SelfVerification
 
 
-# Internal registry mapping human readable names to strategy classes.
-#
-# Keys:
-#   String identifiers used in config.yaml, GUI selections and the runner.
-#
-# Values:
-#   Concrete classes that implement the prompt strategy interface
-#   (each subclassing BasePrompt and exposing an .apply(...) method).
+# Names used in configuration files and the dashboard.
 _PROMPT_REGISTRY = {
     "zero_shot": ZeroShot,
     "few_shot": FewShot,
@@ -27,47 +20,12 @@ _PROMPT_REGISTRY = {
 
 
 def load_prompt_strategy(name: str):
-    """
-    Load a prompt strategy instance by its logical name.
-
-    This function is the single entry point for resolving user facing
-    strategy names into concrete strategy objects. It is used by:
-
-        - The GUI, when the user picks a prompt strategy from a dropdown.
-        - The runner, when iterating over selected prompt strategies.
-        - Any future CLI or automation code that needs to run experiments
-          with a specific prompting method.
-
-    Args:
-        name (str):
-            Logical name for the strategy. This is case insensitive and
-            expected to match one of the keys in _PROMPT_REGISTRY, such as:
-                - "zero_shot"
-                - "few_shot"
-                - "cot"
-                - "adaptive_cot"
-                - "self_consistency"
-
-    Returns:
-        An instance of the requested prompt strategy class.
-
-    Raises:
-        ValueError:
-            If the provided name does not match any known strategy. The error
-            message includes the unknown name and the list of valid options
-            to make misconfigurations easy to diagnose.
-    """
-    # Normalize input to lowercase so "CoT", "COT" and "cot" are treated
-    # identically throughout the pipeline.
+    """Look up a prompting approach by name and return a new instance."""
     key = name.lower()
 
     cls = _PROMPT_REGISTRY.get(key)
     if cls is None:
-        # Construct a helpful error message that lists valid options.
         valid = ", ".join(sorted(_PROMPT_REGISTRY.keys()))
         raise ValueError(f"Unknown prompt strategy: {name!r}. Valid options are: {valid}")
 
-    # Instantiate and return the strategy object. Strategies do not require
-    # constructor arguments right now, but this approach keeps the door open
-    # for future configuration if needed.
     return cls()

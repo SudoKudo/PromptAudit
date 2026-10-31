@@ -1,0 +1,72 @@
+{
+  "name": "@jupyterlab/toc",
+  "version": "6.1.0-beta.1",
+  "description": "JupyterLab - Table of Contents widget",
+  "keywords": [
+    "jupyterlab"
+  ],
+  "homepage": "https://github.com/jupyterlab/jupyterlab",
+  "bugs": {
+    "url": "https://github.com/jupyterlab/jupyterlab/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyterlab/jupyterlab.git"
+  },
+  "license": "BSD-3-Clause",
+  "author": "Project Jupyter",
+  "sideEffects": [
+    "style/*.css",
+    "style/index.js"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "style": "style/index.css",
+  "files": [
+    "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",
+    "schema/*.json",
+    "style/**/*.{css,eot,gif,html,jpg,json,png,svg,woff2,ttf}",
+    "style/index.js",
+    "src/**/*.{ts,tsx}"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "build:test": "tsc --build tsconfig.test.json",
+    "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
+    "docs": "typedoc src",
+    "test": "jest",
+    "test:cov": "jest --collect-coverage",
+    "test:debug": "node --inspect-brk ../../node_modules/.bin/jest --runInBand",
+    "test:debug:watch": "node --inspect-brk ../../node_modules/.bin/jest --runInBand --watch",
+    "watch": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@jupyterlab/apputils": "^4.2.0-beta.1",
+    "@jupyterlab/coreutils": "^6.1.0-beta.1",
+    "@jupyterlab/docregistry": "^4.1.0-beta.1",
+    "@jupyterlab/observables": "^5.1.0-beta.1",
+    "@jupyterlab/rendermime": "^4.1.0-beta.1",
+    "@jupyterlab/rendermime-interfaces": "^3.9.0-beta.1",
+    "@jupyterlab/translation": "^4.1.0-beta.1",
+    "@jupyterlab/ui-components": "^4.1.0-beta.1",
+    "@lumino/coreutils": "^2.1.2",
+    "@lumino/disposable": "^2.1.2",
+    "@lumino/messaging": "^2.0.1",
+    "@lumino/signaling": "^2.1.2",
+    "@lumino/widgets": "^2.3.1",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@jupyterlab/testing": "^4.1.0-beta.1",
+    "@types/jest": "^29.2.0",
+    "@types/react": "^18.0.26",
+    "jest": "^29.2.0",
+    "rimraf": "~5.0.5",
+    "typedoc": "~0.24.7",
+    "typescript": "~5.1.6"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "styleModule": "style/index.js"
+}

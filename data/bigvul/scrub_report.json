@@ -1,0 +1,71 @@
+{
+  "raw_rows": 217007,
+  "vul_1_rows": 10895,
+  "c_cpp_only": 10895,
+  "has_cve_id": 10092,
+  "non_empty": 10092,
+  "has_code_change": 9777,
+  "not_truncated": 8726,
+  "min_10_lines": 7484,
+  "exact_dedup": 6297,
+  "no_label_conflicts": 5875,
+  "near_dedup": 5772,
+  "cves_dated_from_cvelist": 390,
+  "has_disclosure_year": 5772,
+  "clean_pairs": 5772,
+  "clean_cves": 2552,
+  "clean_year_distribution": {
+    "2006": 1,
+    "2007": 1,
+    "2008": 1,
+    "2009": 6,
+    "2010": 17,
+    "2011": 57,
+    "2012": 146,
+    "2013": 233,
+    "2014": 183,
+    "2015": 198,
+    "2016": 452,
+    "2017": 626,
+    "2018": 367,
+    "2019": 262,
+    "2021": 1,
+    "2022": 1
+  },
+  "subsets": {
+    "bigvul_50": {
+      "cves": 50,
+      "samples": 264
+    },
+    "bigvul_100": {
+      "cves": 100,
+      "samples": 560
+    },
+    "bigvul_500": {
+      "cves": 500,
+      "samples": 2298
+    },
+    "bigvul_1000": {
+      "cves": 1000,
+      "samples": 4296
+    }
+  },
+  "settings": {
+    "csv": null,
+    "meta": null,
+    "out": "data/bigvul",
+    "cves": [
+      50,
+      100,
+      500,
+      1000
+    ],
+    "min_lines": 10,
+    "near_dup": 0.98,
+    "max_chars": 0,
+    "strip_comments": false,
+    "seed": 42,
+    "no_folders": false,
+    "source": "huggingface:bstee615/bigvul"
+  }
+}

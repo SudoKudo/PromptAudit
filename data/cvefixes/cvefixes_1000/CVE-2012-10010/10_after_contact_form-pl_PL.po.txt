@@ -1,0 +1,400 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Contact Form Plugin v3.05\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-07-24 19:11+0300\n"
+"PO-Revision-Date: 2012-07-24 19:12+0300\n"
+"Last-Translator: zos <zos@bestwebsoft.com>\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Poedit-Language: Polish\n"
+"X-Poedit-Country: POLAND\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-KeywordsList: __;_e;__ngettext:1,2;_n:1,2;__ngettext_noop:1,2;_n_noop:1,2;_c,_nc:4c,1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2\n"
+"X-Poedit-Basepath: ../\n"
+"X-Textdomain-Support: yes\n"
+"X-Poedit-SearchPath-0: .\n"
+
+# @ contact_form
+#: contact_form.php:76
+msgid "Activated plugins"
+msgstr "Aktywne wtyczki"
+
+# @ contact_form
+#: contact_form.php:78
+#: contact_form.php:86
+#: contact_form.php:94
+msgid "Read more"
+msgstr "Czytaj więcej"
+
+# @ contact_form
+#: contact_form.php:78
+#: contact_form.php:805
+#: contact_form.php:814
+msgid "Settings"
+msgstr "Ustawienia"
+
+# @ contact_form
+#: contact_form.php:84
+msgid "Installed plugins"
+msgstr "Zainstalowane wtyczki"
+
+# @ contact_form
+#: contact_form.php:92
+msgid "Recommended plugins"
+msgstr "Polecane wtyczki"
+
+# @ contact_form
+#: contact_form.php:94
+msgid "Download"
+msgstr "Pobierz"
+
+# @ default
+#: contact_form.php:94
+#, php-format
+msgid "Install %s"
+msgstr "Instaluj %s"
+
+# @ contact_form
+#: contact_form.php:94
+msgid "Install now from wordpress.org"
+msgstr "Zainstaluj z wordpress.org"
+
+# @ contact_form
+#: contact_form.php:96
+msgid "If you have any questions, please contact us via plugin@bestwebsoft.com or fill in our contact form on our site"
+msgstr "Jeśli masz pytania, napisz na adres plugin@bestwebsoft.com lub skorzystaj z formularza na naszej stronie"
+
+# @ contact_form
+#: contact_form.php:108
+#: contact_form.php:262
+msgid "Contact Form Options"
+msgstr "Opcje Contact Form"
+
+# @ contact_form
+#: contact_form.php:108
+msgid "Contact Form"
+msgstr "Contact Form"
+
+# @ contact_form
+#: contact_form.php:136
+#: contact_form.php:180
+#: contact_form.php:216
+#: contact_form.php:366
+msgid "Name:"
+msgstr "Imię:"
+
+# @ contact_form
+#: contact_form.php:137
+#: contact_form.php:181
+#: contact_form.php:217
+#: contact_form.php:367
+msgid "E-Mail Address:"
+msgstr "Adres e-mail"
+
+# @ contact_form
+#: contact_form.php:138
+#: contact_form.php:182
+#: contact_form.php:218
+#: contact_form.php:368
+msgid "Subject:"
+msgstr "Temat:"
+
+# @ contact_form
+#: contact_form.php:139
+#: contact_form.php:183
+#: contact_form.php:219
+#: contact_form.php:369
+msgid "Message:"
+msgstr "Treść wiadomości:"
+
+# @ contact_form
+#: contact_form.php:140
+#: contact_form.php:184
+#: contact_form.php:220
+#: contact_form.php:370
+msgid "Attachment:"
+msgstr "Załączniki:"
+
+# @ contact_form
+#: contact_form.php:142
+#: contact_form.php:186
+msgid "Thank you for contacting us."
+msgstr "Dziękujemy za wiadomość."
+
+#: contact_form.php:230
+msgid "If the option 'Redirect to page' is selected then url field should be fillied in the following format"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:237
+#: contact_form.php:242
+#: contact_form.php:251
+msgid "Options saved."
+msgstr "Opcje zapisano"
+
+# @ contact_form
+#: contact_form.php:245
+msgid "Such user is not exist. Settings are not saved."
+msgstr "Nie ma takiego użytkownika. Ustawienia nie zostały zapisane."
+
+# @ contact_form
+#: contact_form.php:254
+msgid "Please input correct email. Settings are not saved."
+msgstr "Proszę wpisać prawidłowy e-mail. Ustawienia nie zostały zapisane."
+
+# @ contact_form
+#: contact_form.php:267
+msgid "If you would like to add a Contact Form to your website, just copy and put this shortcode onto your post or page or widget:"
+msgstr "Jeśli chcesz dodać formularz do swojej strony, po prostu skopiuj ten kod i wklej go do wpisu lub treści strony lub Widget:"
+
+# @ contact_form
+#: contact_form.php:268
+msgid "If information in the below fields are empty then the message will be send to an address which was specified during registration."
+msgstr "Jeśli poniższe pola zostaną puste, wiadomość zostanie wysłana na adres podany podczas rejestracji."
+
+# @ contact_form
+#: contact_form.php:272
+msgid "Use email of wordpress user:"
+msgstr "Użyj adresu e-mail użytkownika:"
+
+# @ contact_form
+#: contact_form.php:278
+msgid "Select user name"
+msgstr "Wybierz użytkownika"
+
+# @ contact_form
+#: contact_form.php:283
+msgid "Set a name of user who will get messages from a contact form."
+msgstr "Wybierz użytkownika, który będzie dostawał wiadomości z formularza."
+
+# @ contact_form
+#: contact_form.php:287
+msgid "Use this email:"
+msgstr "Wybierz ten e-mail:"
+
+# @ contact_form
+#: contact_form.php:293
+msgid "Set an email address which will be used for messages receiving."
+msgstr "Ustaw adres e-mail, który będzie używany do odbierania wiadomości."
+
+# @ contact_form
+#: contact_form.php:297
+msgid "Additional options"
+msgstr "Dodatkowe opcje"
+
+# @ contact_form
+#: contact_form.php:300
+msgid "Display Attachment block"
+msgstr "Wyświetlaj blok załączników"
+
+# @ contact_form
+#: contact_form.php:305
+msgid "Users can attach files of the following types"
+msgstr "Można załączać pliki następujących typów"
+
+# @ contact_form
+#: contact_form.php:309
+msgid "Display Attachment explanations"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:314
+msgid "Display explanations after Attachment block"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:318
+msgid "Display Send me a copy block"
+msgstr "Wyświetlaj blok wysyłania kopii do nadawcy"
+
+#: contact_form.php:324
+msgid "What use?"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:329
+msgid "Wp-mail"
+msgstr "Wp-mail"
+
+#: contact_form.php:330
+msgid "To send mail you can use the wordpress wp_mail function"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:338
+msgid "Mail"
+msgstr "Mail"
+
+#: contact_form.php:339
+msgid "To send mail you can use the php mail function"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:343
+msgid "Change FROM fields of the contact form"
+msgstr "Zmień od pola formularza"
+
+#: contact_form.php:349
+msgid "Display additional info in email"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:354
+#: contact_form.php:676
+msgid "Sent from (ip address)"
+msgstr "Przysłane z (adres IP)"
+
+# @ contact_form
+#: contact_form.php:355
+#: contact_form.php:681
+msgid "Date/Time"
+msgstr "Data/czas"
+
+# @ contact_form
+#: contact_form.php:356
+#: contact_form.php:686
+msgid "Coming from (referer)"
+msgstr "Przekierowane z (referrer)"
+
+# @ contact_form
+#: contact_form.php:357
+#: contact_form.php:691
+msgid "Using (user agent)"
+msgstr "Klient (program użytkownika)"
+
+# @ contact_form
+#: contact_form.php:361
+msgid "Change label for fields of the contact form"
+msgstr "Zmień etykiety pól formularza"
+
+#: contact_form.php:374
+msgid "Action after the send mail"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:376
+#, fuzzy
+msgid "Display text"
+msgstr "Wyświetlaj blok załączników"
+
+#: contact_form.php:377
+msgid "Text"
+msgstr ""
+
+#: contact_form.php:378
+msgid "Redirect to page"
+msgstr ""
+
+#: contact_form.php:379
+msgid "Url"
+msgstr ""
+
+# @ default
+#: contact_form.php:384
+msgid "Save Changes"
+msgstr "Zapisz zmiany"
+
+# @ contact_form
+#: contact_form.php:420
+msgid "Sorry, your e-mail could not be delivered."
+msgstr "Niestety, ten e-mail nie mógł zostać dostarczony."
+
+# @ contact_form
+#: contact_form.php:478
+msgid "You can attach files of the following types"
+msgstr "Możesz załączać pliki następujących typów"
+
+# @ contact_form
+#: contact_form.php:486
+msgid "Send me a copy"
+msgstr "Wyślij mi kopię"
+
+# @ contact_form
+#: contact_form.php:496
+msgid "Submit"
+msgstr "Wyślij"
+
+# @ contact_form
+#: contact_form.php:535
+msgid "Your name is required."
+msgstr "Podanie imienia jest wymagane."
+
+# @ contact_form
+#: contact_form.php:536
+msgid "A proper e-mail address is required."
+msgstr "Podanie prawidłowego adresu e-mail jest wymagane."
+
+# @ contact_form
+#: contact_form.php:537
+msgid "Subject text is required."
+msgstr "Podanie tematu jest wymagane."
+
+# @ contact_form
+#: contact_form.php:538
+msgid "Message text is required."
+msgstr "Wiadomość musi mieć jakąś treść."
+
+# @ contact_form
+#: contact_form.php:539
+msgid "Please make corrections below and try again."
+msgstr "Proszę nanieść poprawki i spróbować jeszcze raz."
+
+# @ contact_form
+#: contact_form.php:570
+msgid "Attachment is broken."
+msgstr "Załącznik jest uszkodzony."
+
+# @ contact_form
+#: contact_form.php:583
+msgid "Please complete the CAPTCHA."
+msgstr "Proszę dokładnie przepisać kod."
+
+# @ contact_form
+#: contact_form.php:699
+msgid "Contact from"
+msgstr "Kontakt z"
+
+# @ contact_form
+#: contact_form.php:704
+msgid "Name"
+msgstr "Imię"
+
+# @ contact_form
+#: contact_form.php:707
+msgid "Email"
+msgstr "E-mail"
+
+# @ contact_form
+#: contact_form.php:710
+msgid "Subject"
+msgstr "Temat"
+
+# @ contact_form
+#: contact_form.php:713
+msgid "Message"
+msgstr "Wiadomość"
+
+# @ contact_form
+#: contact_form.php:716
+msgid "Site"
+msgstr "Strona www"
+
+#: contact_form.php:761
+msgid "If you can see this MIME than your client doesn't accept MIME types!"
+msgstr ""
+
+# @ contact_form
+#: contact_form.php:815
+msgid "FAQ"
+msgstr "FAQ"
+
+# @ contact_form
+#: contact_form.php:816
+msgid "Support"
+msgstr "Wsparcie"
+

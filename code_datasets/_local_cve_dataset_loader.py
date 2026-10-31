@@ -1,168 +1,85 @@
-"""Load local CVE patch datasets from the repository folder layout."""
+"""Load local CVE patch datasets and report source exclusions."""
 
+from collections import Counter
 from pathlib import Path
 import re
 
 
 README_LINE_RE = re.compile(r"\s+(\d+)\.\s+(.+)")
 BEFORE_FILE_RE = re.compile(r"(\d+)_before_")
+AFTER_FILE_RE = re.compile(r"(\d+)_after_")
+EXTENSION_LANGUAGES = {
+    ".c": "C", ".cpp": "C++", ".cc": "C++", ".cxx": "C++", ".h": "C++", ".hpp": "C++",
+    ".java": "Java", ".py": "Python", ".js": "JavaScript", ".jsx": "JavaScript",
+    ".ts": "TypeScript", ".tsx": "TypeScript", ".go": "Go", ".rs": "Rust", ".php": "PHP",
+    ".rb": "Ruby", ".cs": "C#", ".swift": "Swift", ".kt": "Kotlin", ".scala": "Scala",
+    ".sh": "Shell", ".sql": "SQL", ".html": "HTML", ".css": "CSS",
+}
 
-def load_cvefixes_dataset(source_path: str = None):
+
+def load_cvefixes_dataset(source_path=None, *, return_inventory=False):
+    """Read direct before/after files, retaining the established language filter.
+
+    Optional inventory counts distinguish source exclusions from model abstentions.
+    Nested CVE folders are counted but remain outside the selected cohort.
     """
-        Load CVEfixes dataset from local folder structure.
-        
-        Args:
-            source_path (str): Path to the folder containing CVE subfolders
-            
-        Returns:
-            list[dict]: List of samples with structure:
-                {
-                    "id": int,
-                    "cve_id": str,
-                    "file_number": int,
-                    "filename": str,
-                    "language": str,
-                    "code": str,
-                    "label": str  # "VULNERABLE" or "SAFE"
-                }
-        
-        Notes:
-            - Each CVE folder contains before/after file pairs
-            - code_before → VULNERABLE samples
-            - code_after → SAFE samples
-            - Language inferred from file extension
-        """
     if source_path is None:
-        # Get the directory where this script is located
-        current_file = Path(__file__).resolve()
-        # Navigate up to project root, then down to data directory
-        project_root = current_file.parent.parent  # Go up two levels from code_datasets/
-        source_path = project_root / "data" / "CVE_Dataset" / "cve_code_files"
-
+        source_path = Path(__file__).resolve().parents[1] / "data" / "cvefixes" / "cvefixes_1000"
     source_dir = Path(source_path)
-    extension_to_language = {
-            '.c': 'C',
-            '.cpp': 'C++', '.cc': 'C++', '.cxx': 'C++', '.h': 'C++', '.hpp': 'C++',
-            '.java': 'Java',
-            '.py': 'Python',
-            '.js': 'JavaScript', '.jsx': 'JavaScript',
-            '.ts': 'TypeScript', '.tsx': 'TypeScript',
-            '.go': 'Go',
-            '.rs': 'Rust',
-            '.php': 'PHP',
-            '.rb': 'Ruby',
-            '.cs': 'C#',
-            '.swift': 'Swift',
-            '.kt': 'Kotlin',
-            '.scala': 'Scala',
-            '.sh': 'Shell',
-            '.sql': 'SQL',
-            '.html': 'HTML',
-            '.css': 'CSS'
-    }
-        
-    def infer_language(filename: str) -> str:
-        if not filename or filename == "unknown":
-                return "unknown"
-        ext = Path(filename).suffix.lower()
-        return extension_to_language.get(ext, "unknown")
-        
-    samples = []
-    sample_id = 0
-    source_dir = Path(source_path)
-    
-    if not source_dir.exists():
+    if not source_dir.is_dir():
         raise ValueError(f"CVEfixes source path does not exist: {source_path}")
-    
-    cve_folders = sorted([f for f in source_dir.iterdir() if f.is_dir()])
-    
-    for cve_folder in cve_folders:
-        cve_id = cve_folder.name
-        readme_path = cve_folder / "README.txt"
-        original_filenames = {}
-        
-        # if readme_path.exists():
-        #     readme_content = readme_path.read_text(encoding='utf-8')
-        #     for line in readme_content.split('\n'):
-        #         match = re.match(r'\s+(\d+)\.\s+(.+)', line)
-        #         if match:
-        #             file_num = int(match.group(1))
-        #             filename = match.group(2).strip()
-        #             original_filenames[file_num] = filename
-        if readme_path.exists():
+    folders = sorted(path for path in source_dir.iterdir() if path.is_dir())
+    inventory = {"source": source_dir.name, "format": "cve_folders", "source_cve_folders": len(folders),
+                 "source_before_files": 0, "source_after_files": 0, "nested_cve_folders_ignored": 0,
+                 "missing_readmes": 0, "unreadable_readmes": 0, "missing_after_files": 0,
+                 "orphan_after_files": 0, "unrecognized_before_files": 0}
+    excluded = Counter({"unsupported_language": 0, "empty_code": 0, "unreadable_code": 0})
+    samples = []
+    for folder in folders:
+        inventory["nested_cve_folders_ignored"] += sum(1 for path in folder.rglob("CVE-*") if path.is_dir())
+        filenames = {}
+        readme = folder / "README.txt"
+        if readme.exists():
             try:
-                # Use errors='replace' to handle encoding issues gracefully
-                readme_content = readme_path.read_text(encoding='utf-8', errors='replace')
-                for line in readme_content.split('\n'):
+                for line in readme.read_text(encoding="utf-8", errors="replace").split("\n"):
                     match = README_LINE_RE.match(line)
                     if match:
-                        file_num = int(match.group(1))
-                        filename = match.group(2).strip()
-                        original_filenames[file_num] = filename
-            except Exception:
-                # If README fails, just skip it (filenames will be "unknown")
-                pass
-        before_files = sorted(cve_folder.glob('*_before_*.txt'))
-        
-        for before_file in before_files:
-            match = BEFORE_FILE_RE.match(before_file.name)
-            if not match:
-                continue
-            
-            file_num = int(match.group(1))
-            after_file = cve_folder / before_file.name.replace('_before_', '_after_')
-            filename = original_filenames.get(file_num, "unknown")
-            language = infer_language(filename)
-
+                        filenames[int(match.group(1))] = match.group(2).strip()
+            except OSError:
+                inventory["unreadable_readmes"] += 1
+        else:
+            inventory["missing_readmes"] += 1
+        candidates = sorted(folder.glob("*_before_*.txt"))
+        before_files = [path for path in candidates if BEFORE_FILE_RE.match(path.name)]
+        inventory["unrecognized_before_files"] += len(candidates) - len(before_files)
+        after_names = {path.name for path in folder.iterdir() if path.is_file() and AFTER_FILE_RE.match(path.name)}
+        expected_after = {path.name.replace("_before_", "_after_") for path in before_files}
+        inventory["source_before_files"] += len(before_files)
+        inventory["source_after_files"] += len(after_names)
+        inventory["missing_after_files"] += len(expected_after - after_names)
+        inventory["orphan_after_files"] += len(after_names - expected_after)
+        for before in before_files:
+            file_number = int(BEFORE_FILE_RE.match(before.name).group(1))
+            after = folder / before.name.replace("_before_", "_after_")
+            filename = filenames.get(file_number, "unknown")
+            language = EXTENSION_LANGUAGES.get(Path(filename).suffix.lower(), "unknown")
             if language == "unknown":
+                excluded["unsupported_language"] += 1 + int(after.exists())
                 continue
-            
-            # Read VULNERABLE (before) code
-            try:
-                # Use errors='replace' to handle encoding issues
-                code_before = before_file.read_text(encoding='utf-8', errors='replace')
-                if code_before:
-                    samples.append({
-                        "id": sample_id,
-                        "cve_id": cve_id,
-                        "file_number": file_num,
-                        "filename": filename,
-                        "language": language,
-                        "code": code_before,
-                        "label": "VULNERABLE"
-                    })
-                    sample_id += 1
-            except Exception:
-                # Skip files that can't be read
-                pass
-            
-            # Read SAFE (after) code
-            try:
-                if after_file.exists():
-                    # Use errors='replace' to handle encoding issues
-                    code_after = after_file.read_text(encoding='utf-8', errors='replace')
-                    if code_after:
-                        samples.append({
-                            "id": sample_id,
-                            "cve_id": cve_id,
-                            "file_number": file_num,
-                            "filename": filename,
-                            "language": language,
-                            "code": code_after,
-                            "label": "SAFE"
-                        })
-                        sample_id += 1
-            except Exception:
-                # Skip files that can't be read
-                pass
-    
-    return samples
-
-
-# dataset = load_cvefixes_dataset("../data/CVE_Dataset/cve_code_files/")
-
-# print(f"Total samples: {len(dataset):,}")
-# print(f"Vulnerable samples: {sum(1 for s in dataset if s['label'] == 'VULNERABLE'):,}")
-# print(f"Safe samples: {sum(1 for s in dataset if s['label'] == 'SAFE'):,}")
-# print(f"\nLanguages: {set(s['language'] for s in dataset)}")
-# print(f"\nFirst sample: {dataset[0]}")
+            for path, label in ((before, "VULNERABLE"), (after, "SAFE")):
+                if not path.exists():
+                    continue
+                try:
+                    code = path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    excluded["unreadable_code"] += 1
+                    continue
+                if not code:
+                    excluded["empty_code"] += 1
+                    continue
+                samples.append({"id": len(samples), "cve_id": folder.name, "file_number": file_number,
+                                "filename": filename, "language": language, "code": code, "label": label})
+    inventory.update(loaded_samples=len(samples), loaded_cves=len({row["cve_id"] for row in samples}),
+                     label_counts=dict(Counter(row["label"] for row in samples)),
+                     excluded_code_files=dict(excluded))
+    return (samples, inventory) if return_inventory else samples

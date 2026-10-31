@@ -1,0 +1,4 @@
+# Preserve supplied code/data bytes across Windows and Linux checkouts.
+data/** -text
+*.sh text eol=lf
+*.bat text eol=crlf

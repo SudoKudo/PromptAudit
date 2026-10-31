@@ -1,0 +1,160 @@
+#!/usr/bin/perl
+
+
+# A simple script to update version number in spec, dsc or arch linux files
+#
+# (C) 2010 by Adrian Schröter <adrian@suse.de>
+#  
+# This program is free software; you can redistribute it and/or  
+# modify it under the terms of the GNU General Public License  
+# as published by the Free Software Foundation; either version 2  
+# of the License, or (at your option) any later version.  
+# See http://www.gnu.org/licenses/gpl-2.0.html for full license text.  
+
+
+
+my $version;
+my $basename="";
+my $outdir;
+my @files;
+
+use strict;
+use Data::Dumper;
+use File::Basename;
+
+sub usage()
+{
+  print<<END
+
+  Open Build Service source service "set_version"
+
+  Used to update build description files with a detected or given version number.
+
+  Required:
+
+  --output:   mediaset, build only for the given mediaset, identify by name
+
+  Options:
+
+END
+;
+  exit;
+}
+
+while (@ARGV) {
+  usage() if $ARGV[0] eq '--help';
+  if ($ARGV[0] eq '--outdir') {
+    shift @ARGV;
+    $outdir = shift @ARGV;
+    next;
+  } elsif ($ARGV[0] eq '--version') {
+    shift @ARGV;
+    $version = shift @ARGV;
+    next;
+  } elsif ($ARGV[0] eq '--basename') {
+    # this is actually more a prefix
+    shift @ARGV;
+    $basename = shift @ARGV;
+    next;
+  } elsif ($ARGV[0] eq '--file') {
+    shift @ARGV;
+    push @files, shift @ARGV;
+    next;
+  } else {
+    die("Unknown argument $ARGV[0]!");
+  }
+  last;
+}
+
+usage() unless $outdir;
+
+# get local file list
+local *D;
+opendir(D, ".") || return ();
+my @srcfiles = grep {$_ ne '.' && $_ ne '..'} readdir(D);
+closedir D;
+
+# Detect version based on file names
+unless ($version) {
+  my @binsufs = qw{tar tar.gz tgz tar.bz2 tbz2 tar.xz zip};
+  my $binsufsre = join('|', map {"\Q$_\E"} @binsufs);
+  for my $name (@srcfiles) {
+    if ($name =~ /^$basename.*[-_]([\d].*).(?:$binsufsre)$/) {
+       $version=$1;
+       last;
+    }
+  }
+}
+
+# to replace tags in .spec and .dsc files
+sub replace_tag {
+  my ($filename, $tag, $string) = @_;
+  local *R;
+  local *W;
+  # read, try first an modified version in outdir
+  if (!open(R, '<', "$outdir/$filename")) {
+    if (!open(R, '<', $filename)) {
+      die("unable to read $filename: $!\n");
+      return undef;
+    }
+  }
+  if (!open(W, '>', "$outdir/.$filename")) {
+    die("unable to write .$filename: $!\n");
+    return undef;
+  }
+  my $line;
+  while (defined($line = <R>)) {
+    $line =~ s/\n$//;
+    if ( $filename =~ /PKGBUILD$/ ) {
+      $line =~ s/^$tag=.*/$tag=$string/;
+    } else {
+      # keep inline macros for rpm
+      $line =~ s/^$tag:(\s*)[^%]*/$tag:$1$string/;
+    }
+    print W "$line\n";
+  }
+  close R;
+  close W;
+
+  rename("$outdir/.$filename", "$outdir/$filename") || die("rename failed");
+}
+
+# handle rpm spec and debian dsc files
+@files = grep {$_ =~ /.(spec|dsc)$/} @srcfiles if @files <= 0;
+for my $file (@files) {
+  replace_tag($file, 'Version', $version);
+  replace_tag($file, 'Release', "0");
+}
+
+use Digest::MD5;
+
+# handle arch linux PKGBUILD files
+if ( -e "PKGBUILD" ) {
+  # find md5sum of tar ball
+  my $md5sum;
+  my $tarfile;
+  for my $file (@srcfiles) {
+    if ( $file =~ /^_service:.*[-_]$version.*/ ) {
+      $tarfile = $file;
+      last;
+    }
+  }
+  unless($tarfile) {
+    for my $file (@srcfiles) {
+      if ( $file =~ /.*[-_]$version.*/ ) {
+        $tarfile = $file;
+        last;
+      }
+    }
+  }
+
+  open(FILE, $tarfile) || die "Unable to find source file to calculate md5sum\n";
+  my $ctx = Digest::MD5->new;
+  $ctx->addfile(*FILE);
+  $md5sum = $ctx->hexdigest;
+  close(FILE);
+
+  die ("Failed to calculate md5sum") unless $md5sum;
+  replace_tag("PKGBUILD", "pkgrel", "0");
+  replace_tag("PKGBUILD", "md5sums", "('".$md5sum."')");
+}

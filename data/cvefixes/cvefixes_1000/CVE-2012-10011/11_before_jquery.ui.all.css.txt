@@ -1,0 +1,18 @@
+/*
+ * jQuery UI CSS Framework 1.8.9
+ *
+ * Copyright 2011, AUTHORS.txt (http://jqueryui.com/about)
+ * Dual licensed under the MIT or GPL Version 2 licenses.
+ * http://jquery.org/license
+ *
+ * http://docs.jquery.com/UI/Theming
+ */
+@import "jquery.ui.base.css";
+@import "jquery.ui.theme.css";
+ .column { width: 500px; float: left; padding-bottom: 20px; }
+        .portlet { margin: 0 1em 1em 0; }
+        .portlet-header { margin: 0.3em; padding-bottom: 4px; padding-left: 10px;padding-top: 4px;font-size:12px; }
+        .portlet-header .ui-icon { float: right; }
+        .portlet-content { padding: 0.4em; font-size:12px;}
+        .ui-sortable-placeholder { border: 1px dotted black; visibility: visible !important; height: 50px !important; }
+        .ui-sortable-placeholder * { visibility: hidden; }

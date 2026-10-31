@@ -4,6 +4,7 @@ import os
 import subprocess
 
 from datasets import load_dataset
+from . import sample_metadata
 
 # Prefer HfFolder when it is available so token detection follows the
 # current Hugging Face client behavior.
@@ -15,19 +16,7 @@ except ImportError:
 
 
 def ensure_hf_login():
-    """
-    Ensure the user is logged into Hugging Face before attempting to download datasets.
-
-    The logic:
-      1. Try to detect a token using the modern huggingface_hub API (HfFolder).
-      2. If that fails, look for token files in the legacy and cache directories.
-      3. If no token is found, prompt the user to log in using the CLI.
-
-    This is designed to be:
-      - Safe: only triggers login when really needed.
-      - Backward compatible: supports older token locations.
-      - Non-intrusive: if login is already set up, it quietly returns.
-    """
+    """Use an existing Hub token or open the command-line login prompt."""
     # 1. Try the current Hugging Face Hub token helper.
     if HfFolder is not None:
         try:
@@ -58,32 +47,10 @@ def ensure_hf_login():
 
 
 def load_hf_dataset(name: str):
-    """
-    Load a supported dataset from the Hugging Face Hub and normalize its structure.
+    """Load a supported Hub dataset and return normalized code samples.
 
-    Args:
-        name (str):
-            A shorthand dataset identifier, expected to be one of:
-              - "cvefixes"
-              - "bigvul"
-              - "vul4j"
-
-    Returns:
-        list[dict]:
-            A list of samples with a consistent structure across datasets:
-                {
-                    "id": int,             # Sequential index of the sample
-                    "language": str,       # Programming language (if available)
-                    "code": str,           # Code snippet (usually the vulnerable or pre-fix code)
-                    "label": str           # Classification label like "SAFE" or "VULNERABLE"
-                }
-
-    Notes:
-        - The function handles:
-            * Ensuring Hugging Face login is set up.
-            * Mapping simple dataset nicknames to full HF repo names.
-            * Extracting and renaming fields so the rest of PromptAudit
-              does not need to care about dataset-specific schemas.
+    Rows contain an ID, code, language, SAFE/VULNERABLE label, and available
+    CVE metadata. Dataset-specific field mappings are handled here.
     """
     ensure_hf_login()
     name = name.lower()
@@ -120,6 +87,7 @@ def load_hf_dataset(name: str):
             "code": row.get("func_before", row.get("code", row.get("func", ""))),
             # Missing gold labels should stay explicit rather than being coerced to SAFE.
             "label": normalize_label(row.get("target", "UNKNOWN")),
+            **sample_metadata(row),
         })
 
     return samples

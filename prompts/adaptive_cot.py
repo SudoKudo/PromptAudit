@@ -1,11 +1,24 @@
 """Adaptive chain-of-thought prompt strategy for vulnerability classification."""
 
-from .base_prompt import BasePrompt
+from .base_prompt import ROLE_INSTRUCTION, TASK_INSTRUCTION, BasePrompt, code_block
 from evaluation.output_protocol import normalize_output_protocol
 
 
+ADAPTIVE_REASONING_INSTRUCTION = (
+    "Choose how much reasoning to use:\n"
+    "1) If the code is straightforward and you can quickly and clearly determine whether it is "
+    "SAFE or VULNERABLE, answer directly without a step-by-step explanation.\n"
+    "2) Otherwise, reason through the security risks step by step. If you are unsure whether "
+    "a direct answer is sufficient, use step-by-step reasoning.\n"
+)
+COMPLEXITY_GUIDANCE = (
+    "Complex cases can include pointer arithmetic, raw memory operations, manual resource "
+    "management, or complex input handling.\n"
+)
+
+
 class AdaptiveCoT(BasePrompt):
-    """Adaptive Chain-of-Thought prompt strategy."""
+    """Request stepwise reasoning unless the classification is straightforward."""
 
     # Logical name for this strategy (used in configs and reporting).
     name = "adaptive_cot"
@@ -34,13 +47,9 @@ class AdaptiveCoT(BasePrompt):
         )
 
         prompt = (
-            "You are a secure code auditor. Determine whether the following code is "
-            "SAFE or VULNERABLE.\n\n"
-            "Adjust the depth of your reasoning to the code:\n"
-            "1) If the code is straightforward and obviously SAFE or VULNERABLE, keep any explanation brief.\n"
-            "2) If the code uses pointer arithmetic, raw memory operations, manual resource "
-            "management, or complex input handling, reason through the risks step by step.\n"
-            f"3) {placement_hint}\n\n"
-            f"Code:\n{code}\n"
+            f"{ROLE_INSTRUCTION}\n{TASK_INSTRUCTION}\n\n"
+            f"{ADAPTIVE_REASONING_INSTRUCTION}{COMPLEXITY_GUIDANCE}\n"
+            f"{placement_hint}\n\n"
+            f"Code:\n{code_block(code)}\n"
         )
         return prompt

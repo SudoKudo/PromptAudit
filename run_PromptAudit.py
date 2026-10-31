@@ -1,11 +1,11 @@
 """PromptAudit GUI launcher."""
 
-from ui.dashboard import Code2Dashboard
+from ui.dashboard import PromptAuditDashboard
 
 
 def main():
     """Launch the PromptAudit dashboard."""
-    app = Code2Dashboard()
+    app = PromptAuditDashboard()
     try:
         app.place_window_center()
     except Exception:

@@ -1,6 +1,6 @@
 """Self-verification prompt strategy with an explicit model self-check step."""
 
-from .base_prompt import BasePrompt
+from .base_prompt import ROLE_INSTRUCTION, TASK_INSTRUCTION, BasePrompt, code_block
 from evaluation.output_protocol import normalize_output_protocol
 
 
@@ -33,13 +33,13 @@ class SelfVerification(BasePrompt):
         )
 
         prompt = (
-            "You are a security analyst auditing source code for vulnerabilities.\n\n"
+            f"{ROLE_INSTRUCTION}\n{TASK_INSTRUCTION}\n\n"
             "Analyze the code carefully, then verify your own reasoning before committing to the final label:\n"
             "1) Check whether you relied on assumptions that are not supported by the code.\n"
             "2) Check whether you missed unsafe memory handling, input validation, trust-boundary, or injection risks.\n"
             "3) Check whether your conclusion is consistent with your reasoning.\n"
             "4) If you find a mistake, revise your answer.\n\n"
             f"{placement_hint}\n\n"
-            f"Code:\n{code}\n"
+            f"Code:\n{code_block(code)}\n"
         )
         return prompt

@@ -1,6 +1,7 @@
 """Parse model output into SAFE, VULNERABLE, or UNKNOWN labels."""
 
 import re
+from .output_protocol import normalize_output_protocol
 
 
 AVAILABLE_PARSER_MODES = ("strict", "structured", "full")
@@ -48,7 +49,9 @@ def normalize_parser_mode(value: str | None) -> str:
         "full": "full",
         "heuristic": "full",
     }
-    return aliases.get(key, key)
+    if key not in aliases:
+        raise ValueError(f"Unknown parser mode: {value}")
+    return aliases[key]
 
 
 def _normalize_token_label(token: str) -> str | None:
@@ -148,7 +151,7 @@ def parse_verdict_details(
     del model_name  # Reserved for future model-specific parsing heuristics.
 
     parser_mode = normalize_parser_mode(mode)
-    protocol = str(output_protocol or "verdict_first").strip().lower()
+    protocol = normalize_output_protocol(output_protocol)
 
     text = str(text or "").strip()
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]

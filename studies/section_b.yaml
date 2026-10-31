@@ -1,0 +1,20 @@
+# Start with the dummy backend and toy data. Set the study models and cohort after the pilot.
+section: B
+name: section_b_templates
+datasets: [toy]
+models:
+  - {name: dummy, backend: dummy}
+families: [zero_shot, few_shot, cot, adaptive_cot, self_consistency]
+variants: [reference, paraphrase, reworded, task_first]
+protocols: [verdict_first, verdict_last]
+parser_modes: [strict, structured, full]
+seeds: [42]
+votes: 5
+generation:
+  temperature: 0.2
+  top_p: 0.9
+  top_k: 40
+  # Starting budget for pilots; check completion rates before a full experiment.
+  max_new_tokens: 1024
+  repetition_penalty: 1.0
+  stop_sequences: []

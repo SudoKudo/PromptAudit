@@ -1,0 +1,9 @@
+importlib-metadata<=3.7.3; python_version <= '3.6'
+importlib-metadata; python_version != '3.6'
+ipython<8.0.0
+mock
+nbconvert
+pytest
+pytest-cov
+pytest-server-fixtures<=1.7.0; python_version == '2.7'
+pytest-server-fixtures; python_version >= '3.6'

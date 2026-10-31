@@ -1,0 +1,20 @@
+section: C
+name: section_c_components
+datasets: [toy]
+models:
+  - {name: dummy, backend: dummy}
+components: [examples, reasoning, adaptive]
+voting_bases: [cot, adaptive_cot]
+protocols: [verdict_first, verdict_last]
+parser_modes: [strict, structured, full]
+seeds: [42]
+votes: 5
+min_valid_votes: 3
+generation:
+  temperature: 0.2
+  top_p: 0.9
+  top_k: 40
+  # Starting budget for pilots; check completion rates before a full experiment.
+  max_new_tokens: 1024
+  repetition_penalty: 1.0
+  stop_sequences: []

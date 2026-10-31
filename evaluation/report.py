@@ -3,33 +3,57 @@
 import os
 import json
 from datetime import datetime
+from html import escape
+
+from core import __version__
+from .metrics import DEFAULT_METRICS, METRIC_HELP, refresh_record_accuracy
+from utils.privacy import safe_settings
+
+
+REPORT_METRICS = {
+    "Accuracy": "Acc", "Precision": "Prec", "Recall": "Rec", "F1": "F1",
+    "Coverage": "Cov", "AbstentionRate": "Abst", "EffectiveF1": "EffF1",
+}
+
+
+def _without_response_text(value):
+    """Reports use compact diagnostics; raw model text stays in run artifacts."""
+    private_fields = {"raw_output", "raw_response", "thinking_output", "response_preview",
+                      "response_text_preview", "error_message", "prompt_text"}
+    if isinstance(value, dict):
+        return {key: _without_response_text(item) for key, item in value.items() if key not in private_fields}
+    if isinstance(value, list):
+        return [_without_response_text(item) for item in value]
+    return value
 
 
 class HtmlReport:
-    # The HtmlReport holds onto the results and knows how to write the dashboard.
+    """Write classification scores, diagnostics, and per-sample results."""
+
     def __init__(self, results):
-        # `results` is expected to be a list of dicts. Each dict represents one
-        # (dataset, model, prompt) combo with aggregated metrics and a `predictions`
-        # list of per-sample entries. The JavaScript in the HTML expects those keys.
         self.results = results
 
-    def write(self, output_path, records, metric_keys, version="v2.0",
+    def write(self, output_path, records, version=f"v{__version__}",
               author="PromptAudit"):
-        # Ensure the output folder exists so we can write the HTML file safely.
+        metric_names = list(DEFAULT_METRICS)
+        records = [refresh_record_accuracy(record) for record in safe_settings(_without_response_text(records))]
         output_dir = os.path.dirname(output_path)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
+        analysis_link = (
+            '<p class="mb-3"><a href="analysis_report.html">Open statistical, prevalence, parser, and dataset analyses</a></p>'
+            if os.path.exists(os.path.join(output_dir, "analysis_report.html")) else ""
+        )
+        if os.path.exists(os.path.join(output_dir, "paper", "index.html")):
+            analysis_link += ('<p class="mb-3"><a href="paper/index.html">Open paper tables and full-precision exports</a>. '
+                              'Use these saved Python calculations for manuscript values. '
+                              'Language filters below provide an exploratory view.</p>')
+        if any(record.get("pilot") for record in records):
+            analysis_link = '<p class="mb-3">Pilot / smoke-test results for checking the workflow.</p>' + analysis_link
 
         # ---- Helpers ---------------------------------------------------------
         def sniff_params(rs):
-            """
-            Try to find and return a dict of generation/experiment parameters
-            from the results list `rs`. Different generators may nest params
-            under different keys, so we:
-              1) Look for a dict under common keys like 'params', 'gen_cfg', 'generation'
-              2) If not found, fall back to pulling a whitelist of known keys
-                 directly from rs[0].
-            """
+            """Read generation settings from current records or older flat records."""
             if not rs:
                 return {}
             for k in ("params", "gen_cfg", "generation"):
@@ -44,16 +68,10 @@ class HtmlReport:
             return {k: rs[0][k] for k in rs[0] if k in keys}
 
         # When the report was generated (displayed in the header).
-        params = sniff_params(records)
         gen_when = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         def build_param_rows(p):
-            """
-            Convert a dict of parameters into a small HTML table:
-              - Floats get nicely rounded
-              - Lists get joined with commas
-              - If nothing is available, we show a friendly placeholder
-            """
+            """Format recorded settings, or state that none were recorded."""
             if not p:
                 return "<div class='text-muted small'>No parameters recorded.</div>"
             rows = []
@@ -62,16 +80,32 @@ class HtmlReport:
                     v = f"{v:.3f}"
                 elif isinstance(v, list):
                     v = ", ".join(map(str, v))
-                rows.append(f"<tr><th class='text-nowrap'>{k}</th><td>{v}</td></tr>")
+                rows.append(f"<tr><th class='text-nowrap'>{escape(str(k))}</th><td>{escape(str(v))}</td></tr>")
             return "<table class='table table-sm table-bordered w-auto'><tbody>{}</tbody></table>".format("".join(rows))
 
-        # ---- HTML (escaped safely below) ------------------------------------
-        # NOTE: This is a single HTML page containing:
-        #   - Bootstrap (layout + icons)
-        #   - Chart.js (charts)
-        #   - simple-datatables (tables with pagination and search)
-        #   - html2canvas + jsPDF (image/PDF export)
-        #   - Semantic <div> sections and CSS variables for theming
+        def parameter_sections():
+            groups = {}
+            for record in records:
+                params = sniff_params([record])
+                key = json.dumps(params, sort_keys=True)
+                group = groups.setdefault(key, {"params": params, "models": set(), "combinations": 0})
+                group["models"].add(str(record.get("model", "Unknown model")))
+                group["combinations"] += 1
+            sections = []
+            for group in groups.values():
+                scope = ", ".join(sorted(group["models"]))
+                sections.append(f"<details><summary>{escape(scope)} ({group['combinations']} combinations)</summary>"
+                                + build_param_rows(group["params"]) + "</details>")
+            return "".join(sections) or build_param_rows({})
+
+        metric_thresholds = "".join(
+            f'<div class="col"><label class="small" for="threshold-{key}" title="{escape(METRIC_HELP[key])}">'
+            f'{"Maximum" if key == "AbstentionRate" else "Minimum"} {key.replace("AbstentionRate", "Abstention rate").replace("EffectiveF1", "Effective F1")} '
+            f'(<span id="threshold-value-{key}">{"1.00" if key == "AbstentionRate" else "0.00"}</span>)</label>'
+            f'<input type="range" id="threshold-{key}" min="0" max="1" step="0.01" '
+            f'value="{1 if key == "AbstentionRate" else 0}" class="form-range"></div>' for key in metric_names)
+
+        # Keep fallback styles and table controls usable without the CDN libraries.
         html = """<!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
 <head>
@@ -109,7 +143,7 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
 
 /* Header gradient bar */
 .header-gradient {{
-  background: linear-gradient(135deg, var(--accent-ice), var(--accent-mid) 40%, var(--accent-navy));
+  background: linear-gradient(135deg, #174878, #0b2a62 55%, #2566a5);
   color: #fff;
 }}
 [data-bs-theme="dark"] .header-gradient {{
@@ -299,6 +333,54 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
   vertical-align: middle;
 }
 
+/* Keep the numeric report usable when optional CDN assets are unavailable. */
+body { margin:0; line-height:1.45; }
+.container { width:min(1500px, calc(100% - 32px)); margin:0 auto; }
+.row { display:flex; flex-wrap:wrap; gap:1rem; }
+.col { flex:1 1 160px; min-width:0; }
+.col-auto { flex:0 0 auto; }
+.col-12 { width:100%; }
+.d-flex { display:flex; flex-wrap:wrap; gap:.5rem; }
+.justify-content-between { justify-content:space-between; }
+.align-items-center { align-items:center; }
+.accordion-item { margin-bottom:1rem; border:1px solid #dce4ee; border-radius:8px; overflow:hidden; }
+.accordion-header { margin:0; }
+.accordion-button { width:100%; padding:.9rem 1rem; text-align:left; border:0; font:inherit; font-weight:600; cursor:pointer; background:#e8f0fa; color:#16263b; }
+[data-bs-theme="dark"] .accordion-button { background:#182b42; color:#e0e0e0; }
+.accordion-body, .card-body { padding:1rem; }
+.accordion-collapse:not(.show) { display:none; }
+.card { border:1px solid #dce4ee; border-radius:6px; }
+.card-header { padding:.6rem 1rem; font-weight:600; }
+.table-responsive { overflow:auto; max-height:38rem; }
+.table { border-collapse:collapse; width:100%; margin:.5rem 0; }
+.table th, .table td { padding:.45rem .6rem; border:1px solid #dce4ee; vertical-align:top; }
+.table thead th { position:sticky; top:0; z-index:1; }
+.table td { overflow-wrap:anywhere; }
+.small { font-size:.875rem; }
+.text-muted { color:#5c6878; }
+.d-none, [hidden] { display:none !important; }
+.form-select { width:100%; padding:.35rem; min-width:100px; }
+.form-range { width:100%; }
+button { font:inherit; padding:.35rem .65rem; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline:3px solid #79adff; outline-offset:2px; }
+.header-gradient { padding:1.5rem 0; margin-bottom:1rem; }
+.header-gradient .container { gap:1rem; }
+.header-gradient h1 { margin:0 0 .3rem; }
+.header-title, .header-subtitle { text-shadow:0 1px 2px #153255; }
+details { margin-bottom:.8rem; }
+summary { cursor:pointer; font-weight:600; }
+@media(min-width:992px) { .col-lg-6 { width:calc(50% - .5rem); } }
+@media(max-width:640px) { .container { width:calc(100% - 16px); } .accordion-body { padding:.6rem; } }
+@media print {
+  body, [data-bs-theme="dark"] body { background:#fff; color:#000; }
+  button, .form-range, .column-filters, #collapseFilters, .datatable-top, .datatable-bottom { display:none !important; }
+  .accordion-collapse { display:block !important; }
+  .table-responsive { overflow:visible; max-height:none; }
+  .table thead th { position:static; }
+  .accordion-item { overflow:visible; break-inside:auto; }
+  .container { width:100%; }
+}
+
 </style>
 </head>
 
@@ -327,8 +409,8 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
       <!-- Export buttons (CSV/JSON/Charts/PDF/Glossary) -->
       <button id="btn-export-csv" class="btn btn-sm btn-outline-primary btn-export">CSV</button>
       <button id="btn-export-json" class="btn btn-sm btn-outline-secondary btn-export">JSON</button>
-      <button id="btn-export-charts" class="btn btn-sm btn-outline-success btn-export">Charts</button>
-      <button id="btn-export-pdf" class="btn btn-sm btn-outline-danger btn-export">PDF</button>
+      <button id="btn-export-charts" title="Export the current chart page as an image" class="btn btn-sm btn-outline-success btn-export">Chart PNG</button>
+      <button id="btn-export-pdf" title="Print this report or save a multi-page PDF" class="btn btn-sm btn-outline-danger btn-export">Print / PDF</button>
       <button id="btn-glossary-pdf" class="btn btn-sm btn-primary btn-export">Glossary</button>
     </div>
   </div>
@@ -336,9 +418,11 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
 
 <div class="container pb-4">
 
+  {analysis_link}
+
   <!--
     MAIN ACCORDION
-    Multiple sections can be open at once (we do NOT use data-bs-parent).
+    Sections open independently, without data-bs-parent.
   -->
   <div class="accordion section-toggle mb-3" id="mainAccordion">
 
@@ -385,43 +469,17 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
           <div class="row g-3 align-items-center">
             <div class="col-auto"><strong>Filters:</strong></div>
             <!-- These selects are populated dynamically from RECORDS -->
-            <div class="col"><select id="filterDataset" class="form-select form-select-sm"><option value="">All Datasets</option></select></div>
-            <div class="col"><select id="filterModel" class="form-select form-select-sm"><option value="">All Models</option></select></div>
-            <div class="col"><select id="filterPrompt" class="form-select form-select-sm"><option value="">All Prompts</option></select></div>
-            <div class="col"><select id="filterLanguage" class="form-select form-select-sm"><option value="">All Languages</option></select></div>
+            <div class="col"><select id="filterDataset" aria-label="Dataset" class="form-select form-select-sm"><option value="">All Datasets</option></select></div>
+            <div class="col"><select id="filterModel" aria-label="Model" class="form-select form-select-sm"><option value="">All Models</option></select></div>
+            <div class="col"><select id="filterPrompt" aria-label="Prompt approach" class="form-select form-select-sm"><option value="">All Prompts</option></select></div>
+            <div class="col"><select id="filterProtocol" aria-label="Verdict protocol" class="form-select form-select-sm"><option value="">All Protocols</option></select></div>
+            <div class="col"><select id="filterParser" aria-label="Parser mode" class="form-select form-select-sm"><option value="">All Parsers</option></select></div>
+            <div class="col"><select id="filterLanguage" aria-label="Language" class="form-select form-select-sm"><option value="">All Languages</option></select></div>
             <div class="col-auto"><button id="btn-reset" class="btn btn-sm btn-outline-secondary">Reset</button></div>
           </div>
 
-          <!-- Metric thresholds (live) -->
-          <div class="row mt-3 g-3 align-items-center">
-            <div class="col">
-              <label class="small">Accuracy
-                <span class="metric-info" data-bs-toggle="popover" data-bs-trigger="hover focus" title="Accuracy" data-bs-content="Proportion of evaluated vulnerable/safe outcomes that were correct. (TP + TN) / (TP + TN + FP + FN + UnFN)">?</span>
-                (<span id="valAcc">0.00</span>)
-              </label>
-              <input type="range" id="accThreshold" min="0" max="1" step="0.01" value="0" class="form-range">
-            </div>
-            <div class="col">
-              <label class="small">Precision
-                <span class="metric-info" data-bs-toggle="popover" data-bs-trigger="hover focus" title="Precision" data-bs-content="Of all predicted vulnerable cases, how many were correct. TP / (TP + FP)">?</span>
-                (<span id="valPrec">0.00</span>)
-              </label>
-              <input type="range" id="precThreshold" min="0" max="1" step="0.01" value="0" class="form-range">
-            </div>
-            <div class="col">
-              <label class="small">Recall
-                <span class="metric-info" data-bs-toggle="popover" data-bs-trigger="hover focus" title="Recall" data-bs-content="Of all truly vulnerable cases, how many were correctly identified. TP / (TP + FN + UnFN)">?</span>
-                (<span id="valRec">0.00</span>)
-              </label>
-              <input type="range" id="recThreshold" min="0" max="1" step="0.01" value="0" class="form-range">
-            </div>
-            <div class="col">
-              <label class="small">F1 Score
-                <span class="metric-info" data-bs-toggle="popover" data-bs-trigger="hover focus" title="F1 Score" data-bs-content="Harmonic mean of Precision and Recall. 2 * (P * R) / (P + R)">?</span>
-                (<span id="valF1">0.00</span>)
-              </label>
-              <input type="range" id="f1Threshold" min="0" max="1" step="0.01" value="0" class="form-range">
-            </div>
+          <div class="row mt-3 g-3 align-items-center" id="metricThresholds">
+            {metric_thresholds}
           </div>
 
           <!-- Summary text updates as filters move -->
@@ -431,7 +489,7 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
     </div>
 
     <!-- Chart -->
-    <!-- A bar chart that aggregates duplicate (model+prompt) combos -->
+    <!-- Page through condition scores without merging different datasets. -->
     <div class="accordion-item">
       <h2 class="accordion-header" id="headingChart">
         <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseChart" aria-expanded="true" aria-controls="collapseChart">
@@ -440,6 +498,12 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
       </h2>
       <div id="collapseChart" class="accordion-collapse collapse show" aria-labelledby="headingChart">
         <div class="accordion-body">
+          <p id="chartNotice" class="small text-muted" hidden>Charts are unavailable because the chart library did not load. Numeric results remain available below.</p>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span id="chartPageStatus" class="small" aria-live="polite"></span>
+            <div><button id="chartPrevious" type="button">Previous chart page</button>
+            <button id="chartNext" type="button">Next chart page</button></div>
+          </div>
           <div class="chart-scroll mb-2">
             <div id="chartStage" class="chart-stage"><canvas id="metricChart"></canvas></div>
           </div>
@@ -473,13 +537,7 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
                   <thead>
                     <tr>
                       <th>Dataset</th><th>Model</th><th>Prompt</th><th>Protocol</th><th>Parser</th><th>Status</th><th>Progress</th><th>Lang</th>
-                      <th title="Accuracy: (TP+TN)/(TP+TN+FP+FN+UnFN)">Acc</th>
-                      <th title="Precision: TP/(TP+FP)">Prec</th>
-                      <th title="Recall: TP/(TP+FN+UnFN)">Rec</th>
-                      <th title="F1: 2*(P*R)/(P+R)">F1</th>
-                      <th title="Coverage: 1 - Abstention Rate">Cov</th>
-                      <th title="Abstention Rate: (Incorrect + UnFN) / Total outcomes">Abst</th>
-                      <th title="Effective F1: F1 * Coverage">EffF1</th>
+                      {metric_headers}
                     </tr>
                   </thead>
                   <tbody id="resultsBody"></tbody>
@@ -491,17 +549,50 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
       </div>
     </div>
 
+    <div class="accordion-item">
+      <h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDiagnostics" aria-expanded="true" aria-controls="collapseDiagnostics">Execution and generation diagnostics</button></h2>
+      <div id="collapseDiagnostics" class="accordion-collapse collapse show"><div class="accordion-body">
+        <p class="small text-muted">Classification counts and parse tiers follow the selected language. Execution counts and elapsed time describe the recorded combination and session. Parser replay and cached responses can avoid fresh generation. Language filters do not prorate these measurements.</p>
+        <div class="table-responsive"><table id="execution-table" class="table table-sm table-bordered small"><thead><tr>
+          <th>Dataset</th><th>Model</th><th>Prompt</th><th>Protocol</th><th>Parser</th>
+          <th title="UNKNOWN predictions, including unresolved or failed responses.">UNKNOWN</th>
+          <th title="Vulnerable samples with an unresolved prediction.">Vulnerable abstentions</th>
+          <th title="SAFE samples with an unresolved prediction.">SAFE abstentions</th>
+          <th title="Maximum client requests running concurrently.">Workers</th>
+          <th title="Fresh model executions in this combination and session.">Fresh calls</th>
+          <th title="Raw responses replayed from this run's recorded cache.">Within-run reuse</th>
+          <th title="Matching responses reused across experiment types in this batch.">Batch reuse</th>
+          <th title="Responses reused from the shared cache across runs.">Cross-run hits</th>
+          <th title="Elapsed time spent on this combination in the recorded session. It includes cache lookup and parsing.">Elapsed seconds</th>
+          <th title="Sum of time spent on fresh model executions. Concurrent calls overlap, so this can exceed elapsed time.">Fresh generation seconds</th>
+          <th>Parse tiers</th>
+        </tr></thead><tbody id="executionBody"></tbody></table></div>
+        <h3 class="h6">Decision cost and completion</h3>
+        <p class="small text-muted">Decision cost includes all requested draws used by the voting rule and their original recorded generation cost, including reused responses. It is separate from fresh executions and elapsed time above. These means follow the selected language.</p>
+        <div class="table-responsive"><table id="decision-table" class="table table-sm table-bordered small"><thead><tr>
+          <th>Dataset</th><th>Model</th><th>Prompt</th><th>Protocol</th><th>Parser</th>
+          <th title="Mean requested calls used by each decision, including failed and unresolved draws.">Calls / sample</th>
+          <th title="Mean sum of original generation times across the decision calls. Cached times are not the current elapsed time.">Recorded seconds / sample</th>
+          <th>Input tokens / sample</th><th>Output tokens / sample</th><th>Distinct responses / pool</th>
+          <th title="Fraction of decision calls that reached their output cap. Requires complete backend measurements.">Output-limit hit rate</th>
+          <th title="Fraction of sample decisions with complete output-limit measurements.">Limit measurement coverage</th>
+          <th>Errors / sample</th>
+        </tr></thead><tbody id="decisionBody"></tbody></table></div>
+        <p class="small text-muted">Unavailable measurements are shown as unavailable. Anomaly samples alone are not a complete count of failures or capped outputs.</p>
+      </div></div>
+    </div>
+
     <!-- Detailed Model Predictions -->
     <!-- Bottom table: one row per prediction (per sample) -->
     <div class="accordion-item">
       <h2 class="accordion-header" id="headingDetailed">
         <button class="accordion-button" type="button"
                 data-bs-toggle="collapse" data-bs-target="#collapseDetailed"
-                aria-expanded="false" aria-controls="collapseDetailed">
+                aria-expanded="true" aria-controls="collapseDetailed">
           Detailed Model Predictions
         </button>
       </h2>
-      <div id="collapseDetailed" class="accordion-collapse show"
+      <div id="collapseDetailed" class="accordion-collapse collapse show"
           aria-labelledby="headingDetailed">
         <div class="accordion-body">
           <div class="card">
@@ -519,18 +610,23 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
                     <thead class="table-light">
                         <tr>
                         <th>ID</th><th>Dataset</th><th>Protocol</th><th>Parser</th><th>Lang</th><th>Model</th><th>Prompt</th>
-                        <th>Predicted</th><th>True</th><th>Correct?</th>
+                        <th>Predicted</th><th>True</th><th>Correct?</th><th>CVE</th><th>Pair</th><th>Parse tier</th>
                         </tr>
                     </thead>
                     <tbody id="detailsBody"></tbody>
                     </table>
                 </div>
-                </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
   </div> <!-- /accordion -->
+
+  <details id="metric-definitions"><summary>Metric definitions</summary>
+    {metric_glossary}
+  </details>
 
 </div> <!-- /container -->
 
@@ -540,8 +636,14 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
    RECORDS is the raw JSON version of your Python `records` list dumped below.
 ---------------------------------------------------------------------------- */
 const RECORDS = {json_records};
+const METRIC_NAMES = {json_metrics};
+const METRIC_HELP = {json_metric_help};
 
-// --- Global state for robust filtering across ALL pages
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+
+// Filters apply to all table pages.
 let resultsTable = null;  // DataTable instance for the top table
 let detailTable  = null;  // DataTable instance for the bottom table
 
@@ -556,7 +658,7 @@ const resultsActive = {}; // {colIndex: "value"}
 const detailsActive = {};
 
 /* Tiny helpers: round numbers, deduplicate arrays */
-function roundNum(n){return (typeof n==='number')?n.toFixed(3):'-';}
+function roundNum(n){return Number.isFinite(n)?n.toFixed(3):'Unavailable';}
 function asInt(n){{ const parsed = Number(n); return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : 0; }}
 function unique(v){return Array.from(new Set(v)).sort();}
 function normalizeLabel(value){{
@@ -584,9 +686,8 @@ function aggregatePredictionMetrics(predictions){{
       else totals.Incorrect += 1;
     }}
   }});
-  const answeredTotal = totals.TP + totals.TN + totals.FP + totals.FN + totals.UnFN;
-  const total = answeredTotal + totals.Incorrect;
-  totals.Accuracy = answeredTotal ? (totals.TP + totals.TN) / answeredTotal : 0;
+  const total = totals.TP + totals.TN + totals.FP + totals.FN + totals.UnFN + totals.Incorrect;
+  totals.Accuracy = total ? (totals.TP + totals.TN) / total : 0;
   totals.Precision = (totals.TP + totals.FP) ? totals.TP / (totals.TP + totals.FP) : 0;
   const recallDenominator = totals.TP + totals.FN + totals.UnFN;
   totals.Recall = recallDenominator ? totals.TP / recallDenominator : 0;
@@ -602,7 +703,7 @@ function recordForSelectedLanguage(record, selectedLanguage){{
   if (!selectedLanguage) return record;
   const target = selectedLanguage.toString().trim().toLowerCase();
   const filteredPredictions = (record?.predictions || []).filter(p => {{
-    const language = (p?.language || 'unknown').toString().trim().toLowerCase() || 'unknown';
+    const language = (p?.language || record?.language || 'unknown').toString().trim().toLowerCase() || 'unknown';
     return language === target;
   }});
   if (!filteredPredictions.length) return null;
@@ -615,7 +716,10 @@ function recordForSelectedLanguage(record, selectedLanguage){{
     languages_present: [displayLanguage],
     language_counts: {{ [displayLanguage]: filteredPredictions.length }},
     filtered_language: displayLanguage,
-    language_sample_count: filteredPredictions.length
+    language_sample_count: filteredPredictions.length,
+    parse_tier_counts: filteredPredictions.reduce((counts,prediction)=>{
+      const tier=prediction.parse_tier || 'unknown'; counts[tier]=(counts[tier] || 0)+1; return counts;
+    },{})
   }};
 }}
 function collectLanguageCounts(r){{
@@ -624,7 +728,7 @@ function collectLanguageCounts(r){{
   }}
   const counts = {{}};
   (r?.predictions || []).forEach(p => {{
-    const lang = (p?.language || 'unknown').toString().trim() || 'unknown';
+    const lang = (p?.language || r?.language || 'unknown').toString().trim() || 'unknown';
     counts[lang] = (counts[lang] || 0) + 1;
   }});
   if (!Object.keys(counts).length && r?.language) {{
@@ -676,7 +780,7 @@ function updatePartialSummary(rows){{
     return;
   }}
   const labels = partials.slice(0, 3).map(r =>
-    `<code>${r.model} / ${r.prompt} / ${r.output_protocol || 'verdict_first'} / ${r.parser_mode || 'full'}</code>`
+    `<code>${escapeHtml(r.model)} / ${escapeHtml(r.prompt)} / ${escapeHtml(r.output_protocol || 'verdict_first')} / ${escapeHtml(r.parser_mode || 'full')}</code>`
   );
   const extra = partials.length > 3 ? ` and ${partials.length - 3} more` : '';
   box.classList.remove('d-none');
@@ -693,9 +797,47 @@ function setRecordCount(visible, total, partialVisible = 0){{
   rc.textContent = `Showing ${visible} / ${total}${suffix}`;
 }}
 
+function measuredNumber(value) {
+  return typeof value==='number' && Number.isFinite(value) ? value : null;
+}
+function measuredText(value) {
+  const number=measuredNumber(value);
+  return number===null ? 'Unavailable' : Number.isInteger(number) ? String(number) : number.toFixed(3);
+}
+function decisionDiagnostics(record) {
+  const rows=record.predictions || [];
+  const mean=field=>{
+    const values=rows.map(row=>measuredNumber(row[field]));
+    return values.length && values.every(value=>value!==null) ? values.reduce((a,b)=>a+b,0)/values.length : null;
+  };
+  const calls=mean('decision_calls'), hits=mean('decision_output_limit_hits');
+  return {
+    calls_per_sample:calls, seconds_per_sample:mean('decision_seconds'),
+    prompt_tokens_per_sample:mean('decision_prompt_tokens'), output_tokens_per_sample:mean('decision_output_tokens'),
+    distinct_responses_per_pool:mean('distinct_responses'),
+    output_limit_hit_rate:calls && hits!==null ? hits/calls : null,
+    output_limit_measurement_coverage:rows.length ? rows.filter(row=>measuredNumber(row.decision_output_limit_hits)!==null).length/rows.length : null,
+    generation_errors_per_sample:mean('decision_generation_errors')
+  };
+}
+function renderDiagnostics(data) {
+  const context=record=>[record.dataset,record.model,record.prompt,record.output_protocol || 'verdict_first',record.parser_mode || 'full'];
+  const rowHtml=values=>`<tr>${values.map(value=>`<td>${escapeHtml(value)}</td>`).join('')}</tr>`;
+  document.getElementById('executionBody').innerHTML=data.map(record=>{
+    const performance=record.inference_performance || {};
+    const tiers=record.parse_tier_counts || {};
+    return rowHtml([...context(record),...['Unknown','UnFN','Incorrect'].map(key=>measuredText(record[key])),
+      ...['workers','generated_calls','run_reuses','batch_cache_hits','shared_cache_hits','wall_seconds','generation_seconds'].map(key=>measuredText(performance[key])),
+      Object.keys(tiers).length ? Object.entries(tiers).map(([key,value])=>`${key}: ${value}`).join(', ') : 'Unavailable']);
+  }).join('') || '<tr><td colspan="16">No combinations match the filters.</td></tr>';
+  document.getElementById('decisionBody').innerHTML=data.map(record=>
+    rowHtml([...context(record),...Object.values(decisionDiagnostics(record)).map(measuredText)])
+  ).join('') || '<tr><td colspan="13">No combinations match the filters.</td></tr>';
+}
+
 /* ----------------------------------------------------------------------------
    THEME HANDLING
-   We set a data attribute on <html> so Bootstrap and our CSS can react.
+   Bootstrap and the fallback styles use the theme attribute on <html>.
 ---------------------------------------------------------------------------- */
 const themeSwitch=document.getElementById('themeSwitch');
 themeSwitch?.addEventListener('change',e=>{
@@ -712,17 +854,29 @@ document.addEventListener('shown.bs.collapse', function(e){
 
 /* Activate the small '?' popovers on hover/focus */
 document.addEventListener('DOMContentLoaded',()=>{
-  [...document.querySelectorAll('[data-bs-toggle="popover"]')].forEach(el=>new bootstrap.Popover(el));
+  [...document.querySelectorAll('[data-bs-toggle="popover"]')].forEach(el=>{
+    el.title = el.dataset.bsContent || el.title;
+    if(window.bootstrap?.Popover) new bootstrap.Popover(el);
+  });
+  if(!window.bootstrap) document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const section=document.querySelector(button.dataset.bsTarget);
+      const open=section.classList.toggle('show');
+      button.setAttribute('aria-expanded',String(open));
+    });
+  });
 });
 
 /* ----------------------------------------------------------------------------
    FILTER DROPDOWNS
-   We populate each dropdown from the unique values in RECORDS.
+   Populate dropdowns from the recorded values.
 ---------------------------------------------------------------------------- */
 function populateFilters(){
   fillSelect('filterDataset', unique(RECORDS.map(r=>r.dataset)));
   fillSelect('filterModel', unique(RECORDS.map(r=>r.model)));
   fillSelect('filterPrompt', unique(RECORDS.map(r=>r.prompt)));
+  fillSelect('filterProtocol', unique(RECORDS.map(r=>r.output_protocol || 'verdict_first')));
+  fillSelect('filterParser', unique(RECORDS.map(r=>r.parser_mode || 'full')));
   fillSelect('filterLanguage', unique(RECORDS.flatMap(r=>orderedLanguages(r))));
 }
 function fillSelect(id, arr){
@@ -737,35 +891,35 @@ function fillSelect(id, arr){
    It reads the three dropdowns + four slider thresholds and returns
    the filtered list. It also updates the summary text.
 ---------------------------------------------------------------------------- */
+function thresholdValue(key) {
+  return Number(document.getElementById(`threshold-${key}`).value);
+}
 function applyFilters(){
   const d=document.getElementById('filterDataset').value;
   const m=document.getElementById('filterModel').value;
   const p=document.getElementById('filterPrompt').value;
+  const protocol=document.getElementById('filterProtocol').value;
+  const parser=document.getElementById('filterParser').value;
   const lang=document.getElementById('filterLanguage').value;
-  const acc=parseFloat(document.getElementById('accThreshold').value);
-  const pre=parseFloat(document.getElementById('precThreshold').value);
-  const rec=parseFloat(document.getElementById('recThreshold').value);
-  const f1=parseFloat(document.getElementById('f1Threshold').value);
-
-  // Keep entries that satisfy ALL chosen filters
   const res=RECORDS
-    .filter(r => (!d||r.dataset===d)&&(!m||r.model===m)&&(!p||r.prompt===p))
+    .filter(r => (!d||r.dataset===d)&&(!m||r.model===m)&&(!p||r.prompt===p)
+      &&(!protocol||(r.output_protocol||'verdict_first')===protocol)
+      &&(!parser||(r.parser_mode||'full')===parser))
     .map(r => recordForSelectedLanguage(r, lang))
-    .filter(r => r && (r.Accuracy>=acc)&&(r.Precision>=pre)&&(r.Recall>=rec)&&(r.F1>=f1));
-
-  // Readable summary line ("Dataset: X | Acc >= 0.80 | (5/100)")
+    .filter(r => r && METRIC_NAMES.every(key => {
+      const limit=thresholdValue(key), value=r[key];
+      if (key==='AbstentionRate') return limit===1 || (Number.isFinite(value) && value<=limit);
+      return limit===0 || (Number.isFinite(value) && value>=limit);
+    }));
   const parts=[];
-  if(d)parts.push(`Dataset: <b>${d}</b>`);
-  if(m)parts.push(`Model: <b>${m}</b>`);
-  if(p)parts.push(`Prompt: <b>${p}</b>`);
-  if(lang)parts.push(`Language: <b>${lang}</b>`);
-  if(acc>0)parts.push(`Acc >= ${acc.toFixed(2)}`);
-  if(pre>0)parts.push(`Prec >= ${pre.toFixed(2)}`);
-  if(rec>0)parts.push(`Rec >= ${rec.toFixed(2)}`);
-  if(f1>0)parts.push(`F1 >= ${f1.toFixed(2)}`);
+  [['Dataset',d],['Model',m],['Prompt',p],['Protocol',protocol],['Parser',parser],['Language',lang]]
+    .forEach(([label,value])=>{ if(value) parts.push(`${label}: <b>${escapeHtml(value)}</b>`); });
+  METRIC_NAMES.forEach(key=>{
+    const limit=thresholdValue(key), maximum=key==='AbstentionRate';
+    if(maximum ? limit<1 : limit>0) parts.push(`${key} ${maximum ? '<=' : '>='} ${limit.toFixed(2)}`);
+  });
   parts.push(`<span class='text-secondary ms-2'>(${res.length}/${RECORDS.length} rows)</span>`);
   document.getElementById('filterSummary').innerHTML=parts.join(' | ');
-
   return res;
 }
 
@@ -779,11 +933,13 @@ function renderAll(){
   // Chart + leaderboard respond instantly to filters
   renderChart(data);
   renderLeaderboard(data);
+  renderDiagnostics(data);
 
   // Tables use a try/catch so minor issues don't block the whole UI
   try {
     if (!resultsTable) {
-      renderTable(RECORDS);    // first load uses all records
+      Object.keys(resultsActive).forEach(key=>delete resultsActive[key]);
+      renderTable(data);
       initResultsTable();
     } else {
       updateResultsTable(data);
@@ -792,7 +948,8 @@ function renderAll(){
 
   try {
     if (!detailTable) {
-      renderDetails(RECORDS);  // first load uses all predictions
+      Object.keys(detailsActive).forEach(key=>delete detailsActive[key]);
+      renderDetails(data);
       initDetailTable();
     } else {
       updateDetailTable(data);
@@ -814,12 +971,12 @@ function renderLeaderboard(data){
     {k:'Recall', label:'Recall', c:'#20c997'},
     {k:'F1', label:'F1', c:'#dc3545'},
     {k:'AbstentionRate', label:'Abstention Rate', c:'#fd7e14', lowerIsBetter:true}
-  ];
+  ].filter(metric => METRIC_NAMES.includes(metric.k));
   if(!data.length){ body.innerHTML='<div class="text-muted">No data for leaderboard.</div>'; return; }
 
   body.innerHTML = metrics.map(({k,label,c,lowerIsBetter})=>{
     const scoreOf = r => lowerIsBetter ? 1 - (r[k] || 0) : (r[k] || 0);
-    const sorted=[...data].sort((a,b)=>scoreOf(b)-scoreOf(a)).slice(0,3);
+    const sorted=data.filter(row=>Number.isFinite(row[k])).sort((a,b)=>scoreOf(b)-scoreOf(a)).slice(0,3);
     const maxScore = sorted.length ? scoreOf(sorted[0]) : 1;
     const items = sorted.map((r,i)=>{
       const pct = maxScore>0 ? (scoreOf(r)/maxScore*100) : 0;
@@ -829,7 +986,7 @@ function renderLeaderboard(data){
           <div class="me-2 text-muted small fw-bold" style="width:28px;">${medal}</div>
           <div class="flex-grow-1">
             <div class="d-flex justify-content-between small">
-              <div><b>${r.model}</b> <span class="text-muted">(${r.prompt} | ${r.output_protocol} | ${r.parser_mode})</span> <span class="text-muted">[${r.dataset}]</span> <span class="text-muted">[${visibleSampleCount(r)} samples]</span></div>
+              <div><b>${escapeHtml(r.model)}</b> <span class="text-muted">(${escapeHtml(r.prompt)} | ${escapeHtml(r.output_protocol)} | ${escapeHtml(r.parser_mode)})</span> <span class="text-muted">[${escapeHtml(r.dataset)}]</span> <span class="text-muted">[${visibleSampleCount(r)} samples]</span></div>
               <div><b>${roundNum(r[k])}</b></div>
             </div>
             <div class="progress skim">
@@ -841,7 +998,7 @@ function renderLeaderboard(data){
     return `
       <div class="col-12 col-lg-6">
         <div class="card h-100">
-          <div class="card-header">${label}</div>
+          <div class="card-header" title="${escapeHtml(METRIC_HELP[k])}">${label}</div>
           <div class="card-body">${items || '<div class="text-muted small">No entries.</div>'}</div>
         </div>
       </div>`;
@@ -850,7 +1007,7 @@ function renderLeaderboard(data){
 
 /* ----------------------------------------------------------------------------
    RESULTS TABLE (top)
-   We first build a cache of all rows, then insert them. DataTables wraps it.
+   Build rows before DataTables adds pagination.
 ---------------------------------------------------------------------------- */
 function buildResultsCache(rows) {{
   return (rows || []).map(r => {{
@@ -863,37 +1020,21 @@ function buildResultsCache(rows) {{
       recordStatus(r),
       progressLabel(r),
       recordLanguageSummary(r),
-      roundNum(r.Accuracy),
-      roundNum(r.Precision),
-      roundNum(r.Recall),
-      roundNum(r.F1),
-      roundNum(r.Coverage),
-      roundNum(r.AbstentionRate),
-      roundNum(r.EffectiveF1)
+      ...METRIC_NAMES.map(key => roundNum(r[key]))
     ];
-    const cells = [
-      cols[0],
-      cols[1],
-      cols[2],
-      cols[3],
-      cols[4],
-      statusBadge(r),
-      progressChip(r),
-      cols[7],
-      cols[8],
-      cols[9],
-      cols[10],
-      cols[11],
-      cols[12],
-      cols[13],
-      cols[14]
-    ];
+    const cells = cols.map(escapeHtml);
+    cells[5] = statusBadge(r);
+    cells[6] = progressChip(r);
+    const summary = [
+      `Dataset: ${r.dataset}`, `Model: ${r.model}`, `Prompt: ${r.prompt}`,
+      `Protocol: ${r.output_protocol || 'verdict_first'}`, `Parser: ${r.parser_mode || 'full'}`,
+      `Languages: ${recordLanguageTooltip(r)}`, `Samples: ${visibleSampleCount(r)}`,
+      ...METRIC_NAMES.map(key => `${key}: ${roundNum(r[key])}`)
+    ].join(' | ');
     // Title attribute provides a quick hover summary
     const html = `
-      <tr title="Dataset: ${r.dataset}\nModel: ${r.model}\nPrompt: ${r.prompt}\nProtocol: ${r.output_protocol || 'verdict_first'}\nParser: ${r.parser_mode || 'full'}\nLanguages: ${recordLanguageTooltip(r)}\nSamples: ${visibleSampleCount(r)}\nStatus: ${recordStatus(r)}\nProgress: ${progressLabel(r)}\nAcc: ${roundNum(r.Accuracy)}\nPrec: ${roundNum(r.Precision)}\nRec: ${roundNum(r.Recall)}\nF1: ${roundNum(r.F1)}\nCov: ${roundNum(r.Coverage)}\nAbst: ${roundNum(r.AbstentionRate)}\nEffF1: ${roundNum(r.EffectiveF1)}">
-        <td>${cells[0]}</td><td>${cells[1]}</td><td>${cells[2]}</td><td>${cells[3]}</td><td>${cells[4]}</td><td>${cells[5]}</td><td>${cells[6]}</td><td>${cells[7]}</td>
-        <td>${cells[8]}</td><td>${cells[9]}</td><td>${cells[10]}</td><td>${cells[11]}</td>
-        <td>${cells[12]}</td><td>${cells[13]}</td><td>${cells[14]}</td>
+      <tr title="${escapeHtml(summary)}">
+        ${cells.map(cell => `<td>${cell}</td>`).join('')}
       </tr>`;
     return {
       record: r,
@@ -917,21 +1058,32 @@ function renderTable(data) {
 
 /* ----------------------------------------------------------------------------
    CHART
-   Combine rows that share (model, prompt) by averaging metrics, then
-   plot a grouped bar chart with one bar per metric per label.
+   Plot a bounded page of condition scores. Tables and exports retain all rows.
 ---------------------------------------------------------------------------- */
 let metricChart = null;
-function renderChart(data) {
+let chartPage = 0;
+const CHART_PAGE_SIZE = 12;
+function renderChart(data, resetPage = true) {
   const ctx = document.getElementById('metricChart');
   if (!ctx) return;
+  if(resetPage) chartPage=0;
+  const pageCount=Math.ceil(data.length/CHART_PAGE_SIZE);
+  chartPage=Math.max(0,Math.min(chartPage,pageCount-1));
+  const start=chartPage*CHART_PAGE_SIZE;
+  const pageRows=data.slice(start,start+CHART_PAGE_SIZE);
+  const available=typeof Chart==='function';
+  document.getElementById('chartPageStatus').textContent=`Chart conditions ${data.length ? start+1 : 0}-${start+pageRows.length} of ${data.length}. Tables and exports retain all filtered conditions.`;
+  document.getElementById('chartPrevious').disabled=!available || chartPage===0;
+  document.getElementById('chartNext').disabled=!available || chartPage+1>=pageCount;
+  document.getElementById('chartNotice').hidden=available;
+  document.getElementById('chartStage').hidden=!available;
+  if(!available) return;
 
-  // If a chart already exists, destroy it so we can rebuild cleanly
+  // Replace the previous chart instance.
   if (metricChart) {
     metricChart.destroy();
   }
 
-  // Group by model+prompt and average metrics
-  const groups = {};
   const metricDefs = [
     { key: 'Accuracy', label: 'Accuracy', color: '#0d6efd' },
     { key: 'Precision', label: 'Precision', color: '#ffc107' },
@@ -940,36 +1092,20 @@ function renderChart(data) {
     { key: 'Coverage', label: 'Coverage', color: '#6f42c1' },
     { key: 'AbstentionRate', label: 'Abstention Rate', color: '#fd7e14' },
     { key: 'EffectiveF1', label: 'Effective F1', color: '#198754' }
-  ];
+  ].filter(metric => METRIC_NAMES.includes(metric.key));
 
-  data.forEach(r => {
-    const key = `${r.model}||${r.prompt}||${r.output_protocol || 'verdict_first'}||${r.parser_mode || 'full'}`;
-    if (!groups[key]) {
-      groups[key] = { ...r, count: 1 };
-    } else {
-      metricDefs.forEach(({ key: metricKey }) => {
-        groups[key][metricKey] = (groups[key][metricKey] || 0) + (r[metricKey] || 0);
-      });
-      groups[key].count += 1;
-    }
-  });
-
-  const combined = Object.values(groups).map(g => {
-    const row = {
-      label: `${g.model} (${g.prompt} | ${g.output_protocol || 'verdict_first'} | ${g.parser_mode || 'full'})`
-    };
-    metricDefs.forEach(({ key: metricKey }) => {
-      row[metricKey] = (g[metricKey] || 0) / g.count;
-    });
-    return row;
-  });
+  // Keep each dataset and parser/protocol condition separate in the chart.
+  const combined=pageRows.map(record=>({
+    ...record,
+    label:`${record.dataset} | ${record.model} (${record.prompt} | ${record.output_protocol || 'verdict_first'} | ${record.parser_mode || 'full'})`
+  }));
 
   const stage = document.getElementById('chartStage');
   if (stage) {
     stage.style.width = `${Math.max(1200, combined.length * 150)}px`;
   }
 
-  // If nothing passes the filters, clear the canvas and exit quietly
+  // Clear the canvas when no rows match.
   if (!combined.length) {
     const g = ctx.getContext('2d');
     g.clearRect(0, 0, ctx.width, ctx.height);
@@ -980,7 +1116,7 @@ function renderChart(data) {
   const labels = combined.map(d => d.label);
   const datasets = metricDefs.map(({ key, label, color }) => ({
     label,
-    data: combined.map(d => d[key]),
+    data: combined.map(d => Number.isFinite(d[key]) ? d[key] : null),
     backgroundColor: color
   }));
 
@@ -1049,13 +1185,19 @@ function refreshChartTheme(){
    RESET BUTTON (clears dropdowns and sliders to defaults)
 ---------------------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('chartPrevious').addEventListener('click',()=>{
+    if(chartPage>0) { chartPage--; renderChart(applyFilters(),false); }
+  });
+  document.getElementById('chartNext').addEventListener('click',()=>{
+    chartPage++; renderChart(applyFilters(),false);
+  });
   document.getElementById('btn-reset').addEventListener('click', ()=>{
-    ['filterDataset','filterModel','filterPrompt','filterLanguage'].forEach(id=>document.getElementById(id).value='');
-    [['accThreshold','valAcc'],['precThreshold','valPrec'],['recThreshold','valRec'],['f1Threshold','valF1']]
-      .forEach(([sid, lid])=>{
-        const s=document.getElementById(sid), l=document.getElementById(lid);
-        s.value=0; l.textContent='0.00';
-      });
+    ['filterDataset','filterModel','filterPrompt','filterProtocol','filterParser','filterLanguage'].forEach(id=>document.getElementById(id).value='');
+    METRIC_NAMES.forEach(key=>{
+      const value=key==='AbstentionRate' ? 1 : 0;
+      document.getElementById(`threshold-${key}`).value=value;
+      document.getElementById(`threshold-value-${key}`).textContent=value.toFixed(2);
+    });
     renderAll();
   });
 });
@@ -1063,36 +1205,27 @@ document.addEventListener('DOMContentLoaded',()=>{
 /* ----------------------------------------------------------------------------
    EXPORT BUTTONS
    These let users download CSV, JSON, a PNG snapshot of the chart,
-   and a single-page PDF of the entire dashboard. The Glossary PDF
-   renders a clean "metrics guide" with formulas and when to use them.
+   and a multi-page print/PDF view. The Glossary PDF
+   includes metric definitions and formulas.
 ---------------------------------------------------------------------------- */
 function exportCSV(){
-  const rows=[['Dataset','Model','Prompt','Protocol','Parser','Status','CompletedSamples','TotalSamples','Lang','LangSamples','Acc','Prec','Rec','F1','Coverage','AbstentionRate','EffectiveF1']];
+  const scores=Object.keys(METRIC_HELP);
+  const counts=['TP','TN','FP','FN','UnFN','Incorrect','Unknown'];
+  const rows=[['Dataset','Model','Prompt','Protocol','Parser','Status','CompletedSamples','TotalSamples','Lang','LangSamples',...counts,...scores]];
   applyFilters().forEach(r=>rows.push([
-    r.dataset,
-    r.model,
-    r.prompt,
-    r.output_protocol || 'verdict_first',
-    r.parser_mode || 'full',
-    recordStatus(r),
-    asInt(r.completed_samples),
-    asInt(r.total_samples),
-    recordLanguageTooltip(r),
-    visibleSampleCount(r),
-    r.Accuracy,
-    r.Precision,
-    r.Recall,
-    r.F1,
-    r.Coverage,
-    r.AbstentionRate,
-    r.EffectiveF1
+    r.dataset,r.model,r.prompt,r.output_protocol || 'verdict_first',r.parser_mode || 'full',
+    recordStatus(r),asInt(r.completed_samples),asInt(r.total_samples),recordLanguageTooltip(r),visibleSampleCount(r),
+    ...counts.map(key=>r[key]),...scores.map(key=>r[key])
   ]));
-  const blob=new Blob([rows.map(x=>x.join(',')).join('\\n')],{type:'text/csv'});
+  const quote=value=>{ const text=String(value ?? ''); return '"'+text.replace(/"/g,'""')+'"'; };
+  const blob=new Blob([rows.map(row=>row.map(quote).join(',')).join('\\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='results.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function exportJSON(){
   const blob=new Blob([JSON.stringify(applyFilters(),null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='results.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function exportCharts(){
   const canvas=document.getElementById('metricChart');
@@ -1101,13 +1234,15 @@ function exportCharts(){
   });
 }
 function exportPDF(){
-  html2canvas(document.body).then(canvas=>{
-    const img=canvas.toDataURL('image/png');
-    const pdf=new jspdf.jsPDF('p','mm','a4');
-    const w=210, h=canvas.height*210/canvas.width;
-    pdf.addImage(img,'PNG',0,0,w,h);
-    pdf.save('report.pdf');
-  });
+  const data=applyFilters();
+  // Pagination must not silently omit rows from a printed report.
+  if(resultsTable) { resultsTable.destroy(); resultsTable=null; }
+  if(detailTable) { detailTable.destroy(); detailTable=null; }
+  document.querySelectorAll('.column-filters').forEach(row=>row.remove());
+  renderTable(data);
+  renderDetails(data);
+  window.addEventListener('afterprint',renderAll,{once:true});
+  window.print();
 }
 
 /* Glossary PDF (Color scheme A: PromptAudit blue accents) */
@@ -1131,13 +1266,7 @@ function exportGlossary(){
     y += split.length * 5 + 6;
   };
 
-  // The four core metrics with explanations
-  section('Accuracy', 'Proportion of evaluated vulnerable/safe outcomes that were correct. Formula: (TP + TN) / (TP + TN + FP + FN + UnFN).');
-  section('Precision', 'Of all samples predicted as vulnerable, how many were correct. Formula: TP / (TP + FP). Use when false positives are costly (e.g., triage load).');
-  section('Recall', 'Of all truly vulnerable samples, how many were correctly identified. Formula: TP / (TP + FN + UnFN). Use when missing a vulnerability is costly (safety-critical).');
-  section('F1 Score', 'Harmonic mean of Precision and Recall. Formula: 2 * (Precision * Recall) / (Precision + Recall). Use when you need a single score balancing precision and recall.');
-  section('Coverage', 'Fraction of samples that received a definitive SAFE or VULNERABLE label. Formula: 1 - Abstention Rate.');
-  section('Effective F1', 'Coverage-aware utility score. Formula: F1 * Coverage. High values require both good classification quality and low abstention.');
+  METRIC_NAMES.forEach(key => section(key, METRIC_HELP[key]));
 
   pdf.setFontSize(10);
   pdf.setTextColor(110,110,110);
@@ -1151,24 +1280,20 @@ document.getElementById('btn-export-json').onclick=exportJSON;
 document.getElementById('btn-export-charts').onclick=exportCharts;
 document.getElementById('btn-export-pdf').onclick=exportPDF;
 document.getElementById('btn-glossary-pdf').onclick=exportGlossary;
+if(!window.html2canvas) { document.getElementById('btn-export-charts').disabled=true; document.getElementById('btn-export-charts').title='Chart export requires the image export library.'; }
+if(!window.jspdf?.jsPDF) { document.getElementById('btn-glossary-pdf').disabled=true; document.getElementById('btn-glossary-pdf').title='Glossary PDF requires the PDF library. Metric explanations are available in the report tooltips.'; }
 
 /* ----------------------------------------------------------------------------
    LIVE SLIDERS
-   As you drag a slider, the chart + leaderboard update immediately.
-   On change, we also call renderAll() as a safety for some browsers.
+   Update during input; keep the change event for browser compatibility.
 ---------------------------------------------------------------------------- */
-['acc','prec','rec','f1'].forEach(x=>{
-  const s = document.getElementById(`${x}Threshold`);
-  const l = document.getElementById(`val${x.charAt(0).toUpperCase() + x.slice(1)}`);
-
-  // Live update label + chart as you drag
-  s.addEventListener('input', () => {
-    l.textContent = parseFloat(s.value).toFixed(2);
-    renderAll(); // refresh chart & leaderboard as you drag
+METRIC_NAMES.forEach(key=>{
+  const slider=document.getElementById(`threshold-${key}`);
+  slider.addEventListener('input',()=>{
+    document.getElementById(`threshold-value-${key}`).textContent=Number(slider.value).toFixed(2);
+    renderAll();
   });
-
-  // Safety call when you release the slider (some browsers only fire change)
-  s.addEventListener('change', renderAll);
+  slider.addEventListener('change',renderAll);
 });
 
 /* ----------------------------------------------------------------------------
@@ -1177,7 +1302,7 @@ document.getElementById('btn-glossary-pdf').onclick=exportGlossary;
 ---------------------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', ()=>{
   populateFilters();
-  ['filterDataset','filterModel','filterPrompt','filterLanguage'].forEach(id=>{
+  ['filterDataset','filterModel','filterPrompt','filterProtocol','filterParser','filterLanguage'].forEach(id=>{
     document.getElementById(id).addEventListener('change', renderAll);
   });
   // initial render
@@ -1196,7 +1321,7 @@ function buildDetailRows(data) {{
   (data || []).forEach(rec => {{
     (rec.predictions || []).forEach(p => {
       total++;
-      const isCorrect = p.gold === p.pred;
+      const isCorrect = ["safe","vulnerable"].includes(p.gold) && p.gold === p.pred;
       const predBubble = p.pred === "safe"
         ? `<span class="sv-pill sv-safe">SAFE</span>`
         : p.pred === "vulnerable"
@@ -1212,7 +1337,6 @@ function buildDetailRows(data) {{
       const lang = p.language || rec.language || "-";
 
       // The `cols` array holds plain text per column for filtering.
-      // The `html` string is the actual row we inject into the table.
       const cols = [
         p.id,
         rec.dataset,
@@ -1223,35 +1347,34 @@ function buildDetailRows(data) {{
         rec.prompt,
         (p.pred || "").toUpperCase(),
         (p.gold || "").toUpperCase(),
-        icon
+        icon,
+        p.cve_id || "-",
+        p.pair_id ?? "-",
+        p.parse_tier || "unknown"
       ];
       const html = `
         <tr>
-          <td>${cols[0]}</td>
-          <td>${cols[1]}</td>
-          <td>${cols[2]}</td>
-          <td>${cols[3]}</td>
-          <td>${cols[4]}</td>
-          <td>${cols[5]}</td>
-          <td>${cols[6]}</td>
+          <td>${escapeHtml(cols[0])}</td>
+          <td>${escapeHtml(cols[1])}</td>
+          <td>${escapeHtml(cols[2])}</td>
+          <td>${escapeHtml(cols[3])}</td>
+          <td>${escapeHtml(cols[4])}</td>
+          <td>${escapeHtml(cols[5])}</td>
+          <td>${escapeHtml(cols[6])}</td>
           <td>${predBubble}</td>
           <td>${goldBubble}</td>
-          <td>${cols[9]}</td>
+          <td>${escapeHtml(cols[9])}</td>
+          ${cols.slice(10).map(value=>`<td>${escapeHtml(value)}</td>`).join('')}
         </tr>`;
       rows.push({
         cols,
         html,
         cells: [
-          cols[0],
-          cols[1],
-          cols[2],
-          cols[3],
-          cols[4],
-          cols[5],
-          cols[6],
+          ...cols.slice(0, 7).map(escapeHtml),
           predBubble,
           goldBubble,
-          cols[9]
+          escapeHtml(cols[9]),
+          ...cols.slice(10).map(escapeHtml)
         ]
       });
     });
@@ -1267,16 +1390,24 @@ function renderDetails(data){
   DETAILS_SOURCE = [...(data || [])];
   const detailState = buildDetailRows(DETAILS_SOURCE);
   DETAILS_ALL = detailState.rows;
-  tbody.innerHTML = DETAILS_ALL.map(x => x.html).join("") || "<tr><td colspan='10' class='text-muted'>No predictions available.</td></tr>";
+  tbody.innerHTML = DETAILS_ALL.map(x => x.html).join("") || "<tr><td colspan='13' class='text-muted'>No predictions available.</td></tr>";
   const dc = document.getElementById('detailCount');
   if(dc) dc.textContent = `Showing ${detailState.total} predictions`;
 }
 
 /* ----------------------------------------------------------------------------
    COLUMN FILTER ROWS (per-table)
-   We add a second header row of <select> menus that filter by exact match.
+   Column menus filter rows by exact match.
    This works WITH pagination safely by using the DataTables API to redraw.
 ---------------------------------------------------------------------------- */
+function replaceTableRows(instance, rows) {
+  // simple-datatables v9 exposes rows as a property; insert accepts multiple rows.
+  const indexes=instance.data.data.map((_row,index)=>index);
+  if(indexes.length) instance.rows.remove(indexes);
+  if(rows.length) instance.insert({data:rows});
+  instance.page(1);
+}
+
 function addColumnFilters(tableSelector, instance) {
   const tableEl = document.querySelector(tableSelector);
   if (!tableEl) return;
@@ -1286,7 +1417,7 @@ function addColumnFilters(tableSelector, instance) {
   const active = tableSelector === "#results-table" ? resultsActive : detailsActive;
   const bag = tableSelector === "#results-table" ? RESULTS_ALL : DETAILS_ALL;
 
-  // Remove old filter row if present (so we can rebuild cleanly)
+  // Rebuild the column menus after replacing rows.
   const old = thead.querySelector(".column-filters");
   if (old) old.remove();
 
@@ -1315,7 +1446,7 @@ function addColumnFilters(tableSelector, instance) {
     if (tableSelector === "#results-table" && colIndex === 7) {
       bag.forEach(r => (r.languageLabels || []).forEach(name => values.add(name)));
     } else {
-      bag.forEach(r => values.add((r.cols[colIndex] || "").toString()));
+      bag.forEach(r => values.add((r.cols[colIndex] ?? "").toString()));
     }
     [...values].sort().forEach(v => {
       const opt = document.createElement("option");
@@ -1324,7 +1455,7 @@ function addColumnFilters(tableSelector, instance) {
       select.appendChild(opt);
     });
 
-    // Restore previously active choice if we had one
+    // Keep the current column selection.
     if (active[colIndex]) {
       const targetVal = active[colIndex]; // stored lowercase
       const matchingOption = [...select.options].find(opt => opt.value.trim().toLowerCase() === targetVal);
@@ -1343,33 +1474,18 @@ function addColumnFilters(tableSelector, instance) {
         : bag.filter(row =>
             Object.entries(active).every(([idx, val]) => {
               if (!val) return true; // empty = "All"
-              const text = (row.cols[idx] || "").toString().trim().toLowerCase();
+              const text = (row.cols[idx] ?? "").toString().trim().toLowerCase();
               return text === val;
             })
           );
 
       // Use DataTables API for pagination-safe updates
-      if (instance && typeof instance.rows === "function") {
-        instance.rows().remove();
-
-        // Convert each row's HTML to an array of cell innerHTML strings
-        const newRows = filtered.map(r => {
-          const div = document.createElement("tbody");
-          div.innerHTML = r.html.trim();
-          const tr = div.firstElementChild;
-          return [...tr.children].map(td => td.innerHTML);
-        });
-
-        if (newRows.length > 0) {
-          instance.rows().add(newRows);
-        }
-
-        // Reset paging and force a layout refresh
-        if (typeof instance?.setPage === "function") instance.setPage(1);
-        else if (typeof instance?.page === "function") instance.page(1);
-        instance.pagination?.update?.();
-        instance.update?.();
-        instance.refresh?.();
+      if (instance && instance.rows && typeof instance.insert === "function") {
+        replaceTableRows(instance,filtered.map(row=>row.cells || (()=>{
+          const body=document.createElement('tbody'); body.innerHTML=row.html.trim();
+          return [...body.firstElementChild.children].map(cell=>cell.innerHTML);
+        })()));
+        setTimeout(()=>addColumnFilters(tableSelector,instance),0);
 
       } else {
         // Fallback: rebuild the tbody manually if the API isn't available
@@ -1414,7 +1530,7 @@ function buildResultsRowsFromActiveFilters() {
     Object.entries(resultsActive).every(([idx, val]) => {
       if (!val) return true;
       if (Number(idx) === 7) return true;
-      const text = (row.cols[idx] || "").toString().trim().toLowerCase();
+      const text = (row.cols[idx] ?? "").toString().trim().toLowerCase();
       return text === val;
     })
   );
@@ -1432,27 +1548,13 @@ function resetColumnFilters(tableSelector, instance, activeMap) {
 
   const bag = tableSelector === "#results-table" ? RESULTS_ALL : DETAILS_ALL;
 
-  // ******** THIS IS THE FIX ********
   // Use the same refresh logic as addColumnFilters for pagination safety.
-  if (instance && typeof instance.rows === "function") {
-    instance.rows().remove();
-
-    const allRows = bag.map(r => {
-      const div = document.createElement("tbody");
-      div.innerHTML = r.html.trim();
-      const tr = div.firstElementChild;
-      return [...tr.children].map(td => td.innerHTML);
-    });
-
-    if (allRows.length > 0) {
-      instance.rows().add(allRows);
-    }
-
-    if (typeof instance?.setPage === "function") instance.setPage(1);
-    else if (typeof instance?.page === "function") instance.page(1);
-    instance.pagination?.update?.();
-    instance.update?.();
-    instance.refresh?.();
+  if (instance && instance.rows && typeof instance.insert === "function") {
+    replaceTableRows(instance,bag.map(row=>row.cells || (()=>{
+      const body=document.createElement('tbody'); body.innerHTML=row.html.trim();
+      return [...body.firstElementChild.children].map(cell=>cell.innerHTML);
+    })()));
+    setTimeout(()=>addColumnFilters(tableSelector,instance),0);
 
   } else {
     // Fallback: plain rebuild
@@ -1476,12 +1578,12 @@ function resetColumnFilters(tableSelector, instance, activeMap) {
    DATATABLE INITIALIZATION (top results table)
 ---------------------------------------------------------------------------- */
 function initResultsTable() {
-  // If an existing datatable instance exists, clean it up first
   if (resultsTable) {
     try { resultsTable.destroy(); } catch (e) { /* ignore if already destroyed */ }
     resultsTable = null;
   }
 
+  if(!window.simpleDatatables?.DataTable) { addColumnFilters('#results-table',null); return; }
   // Create a fresh simple-datatables instance
   resultsTable = new simpleDatatables.DataTable("#results-table", {
     searchable: true,      // search box in the header
@@ -1506,6 +1608,7 @@ function initDetailTable() {
     detailTable.destroy();
     detailTable = null;
   }
+  if(!window.simpleDatatables?.DataTable) { addColumnFilters('#details-table',null); return; }
   detailTable = new simpleDatatables.DataTable("#details-table", {
     searchable: true,
     sortable: true,
@@ -1532,13 +1635,7 @@ function updateResultsTable(data) {
   RESULTS_ALL = buildResultsCache(RESULTS_SOURCE);
   const newRows = RESULTS_ALL.map(r => r.cells);
 
-  resultsTable.rows().remove();
-  if (newRows.length) resultsTable.rows().add(newRows);
-  if (typeof resultsTable?.setPage === "function") resultsTable.setPage(1);
-  else if (typeof resultsTable?.page === "function") resultsTable.page(1);
-  resultsTable.pagination?.update?.();
-  resultsTable.update?.();
-  resultsTable.refresh?.();
+  replaceTableRows(resultsTable,newRows);
   setTimeout(() => addColumnFilters("#results-table", resultsTable), 0);
 
   // Update the "Showing X / Y" label
@@ -1556,13 +1653,7 @@ function updateDetailTable(data) {
   DETAILS_ALL = detailState.rows;
   const newRows = DETAILS_ALL.map(r => r.cells);
 
-  detailTable.rows().remove();
-  if (newRows.length) detailTable.rows().add(newRows);
-  if (typeof detailTable?.setPage === "function") detailTable.setPage(1);
-  else if (typeof detailTable?.page === "function") detailTable.page(1);
-  detailTable.pagination?.update?.();
-  detailTable.update?.();
-  detailTable.refresh?.();
+  replaceTableRows(detailTable,newRows);
   setTimeout(() => addColumnFilters("#details-table", detailTable), 0);
 
   // Update the "Showing N predictions" label
@@ -1578,11 +1669,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnDet = document.getElementById("resetDetailsFilters");
 
   btnRes?.addEventListener("click", () => {
-    if (resultsTable) resetColumnFilters("#results-table", resultsTable, resultsActive);
+    resetColumnFilters("#results-table", resultsTable, resultsActive);
   });
 
   btnDet?.addEventListener("click", () => {
-    if (detailTable) resetColumnFilters("#details-table", detailTable, detailsActive);
+    resetColumnFilters("#details-table", detailTable, detailsActive);
   });
 
   updatePartialSummary(RECORDS);
@@ -1592,30 +1683,40 @@ document.addEventListener("DOMContentLoaded", () => {
 </html>
 """
 
+        # Normalize legacy template braces before inserting data; doing this
+        # afterward would corrupt nested JSON objects in the saved records.
+        html = html.replace("{{", "{").replace("}}", "}")
+
         # ---- Safe format: escape, then reinsert slots ----
-        # The curly braces `{}` have special meaning for Python's .format().
-        # Because our HTML/CSS/JS also contains many braces, we first escape
-        # ALL of them by doubling ({{ and }}), then "un-escape" only the
-        # placeholders we want to fill (version, gen_when, author, etc.).
+        # Escape CSS/JavaScript braces, then restore the named template slots.
         safe_html = (
             html.replace("{", "{{").replace("}", "}}")
                 .replace("{{version}}", "{version}")
                 .replace("{{gen_when}}", "{gen_when}")
                 .replace("{{author}}", "{author}")
+                .replace("{{analysis_link}}", "{analysis_link}")
                 .replace("{{param_table}}", "{param_table}")
+                .replace("{{metric_thresholds}}", "{metric_thresholds}")
+                .replace("{{metric_glossary}}", "{metric_glossary}")
                 .replace("{{json_records}}", "{json_records}")
+                .replace("{{metric_headers}}", "{metric_headers}")
+                .replace("{{json_metrics}}", "{json_metrics}")
+                .replace("{{json_metric_help}}", "{json_metric_help}")
         ).format(
-            version=version,                 # e.g., "v2.0"
+            version=escape(str(version)),
+            analysis_link=analysis_link,
             gen_when=gen_when,               # time for header
-            author=author,                   # displayed under the title
-            param_table=build_param_rows(params),  # small HTML table of params
-            json_records=json.dumps(records, ensure_ascii=False)  # embed data as JSON
+            author=escape(str(author)),
+            param_table=parameter_sections(),  # small HTML table of params
+            metric_thresholds=metric_thresholds,
+            metric_glossary="<dl>" + "".join(f"<dt>{escape(key)}</dt><dd>{escape(METRIC_HELP[key])}</dd>"
+                                               for key in metric_names) + "</dl>",
+            json_records=json.dumps(records, ensure_ascii=False).replace("<", "\\u003c").replace("&", "\\u0026"),
+            metric_headers="".join(f'<th title="{escape(METRIC_HELP[key])}">{REPORT_METRICS[key]}</th>'
+                                   for key in metric_names),
+            json_metrics=json.dumps(metric_names),
+            json_metric_help=json.dumps(METRIC_HELP),
         )
-
-        # The template still contains some hand-escaped double braces in CSS/HTML.
-        # Collapse those leftovers after formatting so the emitted HTML uses
-        # normal braces and validates cleanly in browsers/editors.
-        safe_html = safe_html.replace("{{", "{").replace("}}", "}")
 
         # Normalize legacy mojibake that can still leak through old template
         # fragments or browser-cached report snippets.

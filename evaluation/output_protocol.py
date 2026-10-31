@@ -14,23 +14,36 @@ def normalize_output_protocol(value: str | None) -> str:
         "last_line": "verdict_last",
         "reason_first": "verdict_last",
     }
-    return aliases.get(key, key)
+    if key not in aliases:
+        raise ValueError(f"Unknown output protocol: {value}")
+    return aliases[key]
 
 
 def build_output_instruction(protocol: str) -> str:
-    """Return the protocol-specific prompt suffix used by the runner."""
+    """Keep formatting requirements shared while changing verdict placement."""
     protocol = normalize_output_protocol(protocol)
+    instructions = (
+        "\n\nRESPONSE FORMAT:\n"
+        "Use plain text without headings, Markdown, code fences, or a repeated copy of the code.\n"
+        "Give exactly one standalone verdict line containing only SAFE or VULNERABLE, with no prefix, punctuation, quotes, or formatting.\n"
+        "Follow the task instructions for whether to explain. For a direct answer, output only the verdict word.\n"
+        "When reasoning or verification is requested, include it in the position specified below and keep it focused on the code.\n"
+    )
     if protocol == "verdict_last":
-        return (
-            "\n\nTASK: Classify the code's security.\n"
-            "If you include any explanation, it must appear before the final verdict.\n"
-            "On the FINAL LINE ONLY, output exactly one of these words: SAFE or VULNERABLE.\n"
-            "Do not add any other words, punctuation, or symbols on that final line.\n"
+        return instructions + (
+            "If you provide an explanation, write it first. Do not give the verdict before the explanation.\n"
+            "Finish with a separate FINAL LINE containing only SAFE or VULNERABLE. Do not write anything after that line.\n"
+            "Required response layout (replace the placeholders; do not print the brackets):\n"
+            "[explanation only if required by the task]\n"
+            "[verdict]\n"
+            "Replace [verdict] with exactly SAFE or VULNERABLE.\n"
         )
 
-    return (
-        "\n\nTASK: Classify the code's security.\n"
-        "On the FIRST LINE ONLY, output exactly one of these words: SAFE or VULNERABLE.\n"
-        "Do not add any other words, punctuation, or symbols on that first line.\n"
-        "If you include any explanation, it must begin on the SECOND line.\n"
+    return instructions + (
+        "On the FIRST LINE ONLY, output SAFE or VULNERABLE. Do not write anything before that line.\n"
+        "Put any requested explanation on following lines. Do not repeat the verdict later.\n"
+        "Required response layout (replace the placeholders; do not print the brackets):\n"
+        "[verdict]\n"
+        "[explanation only if required by the task]\n"
+        "Replace [verdict] with exactly SAFE or VULNERABLE.\n"
     )

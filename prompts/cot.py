@@ -1,7 +1,10 @@
 """Chain-of-thought prompt strategy for vulnerability classification."""
 
-from .base_prompt import BasePrompt
+from .base_prompt import ROLE_INSTRUCTION, TASK_INSTRUCTION, BasePrompt, code_block
 from evaluation.output_protocol import normalize_output_protocol
+
+
+COT_REASONING_INSTRUCTION = "Reason through these factors step by step.\n"
 
 
 class CoT(BasePrompt):
@@ -34,7 +37,8 @@ class CoT(BasePrompt):
         )
 
         prompt = (
-            "You are a secure code auditor. Analyze the following code step by step, "
+            f"{ROLE_INSTRUCTION}\n{TASK_INSTRUCTION}\n\n"
+            "Analyze the following code step by step, "
             "carefully reasoning about potential security vulnerabilities such as buffer "
             "overflows, injections, improper validation, race conditions, and other "
             "common issues.\n\n"
@@ -44,6 +48,7 @@ class CoT(BasePrompt):
             "2) Validation and sanitization\n"
             "3) Memory safety and resource management\n"
             "4) Injection, race, and logic risks\n\n"
-            f"Code:\n{code}\n"
+            f"{COT_REASONING_INSTRUCTION}\n"
+            f"Code:\n{code_block(code)}\n"
         )
         return prompt
