@@ -309,6 +309,10 @@ def _output_summary(rows, context, cache, cases, control):
             info = call.get("generation_info") or {}
             counts["available_responses"] += 1
             counts["response_chars"] += len(raw)
+            has_text = bool(raw.strip())
+            if has_text:
+                counts["visible_response_calls"] += 1
+                counts["visible_response_chars"] += len(raw)
             tokens = info.get("eval_count", info.get("completion_tokens"))
             if type(tokens) in (int, float) and isfinite(tokens) and tokens >= 0:
                 counts["measured_token_calls"] += 1
@@ -325,6 +329,14 @@ def _output_summary(rows, context, cache, cases, control):
             if call.get("error") or info.get("status") == "error":
                 counts["generation_error_calls"] += 1
                 reasons.add("generation_error")
+                if info.get("error_type") == "ContextWindowExceeded":
+                    counts["context_overflow_calls"] += 1
+                    reasons.add("context_overflow")
+                else:
+                    counts["other_generation_error_calls"] += 1
+            elif not has_text:
+                counts["empty_response_calls"] += 1
+                reasons.add("empty_response")
             if len(raw.splitlines()) > 1:
                 reasons.add("rationale_verdict_review")
         if not ids:
@@ -333,18 +345,22 @@ def _output_summary(rows, context, cache, cases, control):
     result = []
     for (gold, label, correctness), counts in sorted(totals.items()):
         available = counts["available_responses"]
+        visible = counts["visible_response_calls"]
         measured = counts["measured_token_calls"]
         complete_budget = not counts["samples_without_decision_budget"]
         decision_calls = counts["known_decision_calls"] if complete_budget else None
         result.append({**context, "gold": gold, "pred": label, "correctness": correctness,
                        **{key: counts[key] for key in ("samples", "available_responses",
                            "samples_without_response_links", "output_cap_calls", "generation_error_calls",
+                           "context_overflow_calls", "other_generation_error_calls", "empty_response_calls",
+                           "visible_response_calls",
                            "known_decision_calls", "samples_without_decision_budget")},
                        "decision_calls": decision_calls,
                        "missing_responses": counts["missing_responses"] if complete_budget else None,
                        "known_missing_responses": counts["missing_responses"],
                        "decision_budget_measurement_coverage": counts["samples_with_decision_budget"] / counts["samples"],
                        "mean_visible_chars_per_call": counts["response_chars"] / available if available else None,
+                       "mean_visible_chars_per_visible_response": counts["visible_response_chars"] / visible if visible else None,
                        "response_measurement_coverage": available / decision_calls if decision_calls else None,
                        "mean_output_tokens_per_measured_call": counts["output_tokens"] / measured if measured else None,
                        "token_measurement_coverage": measured / decision_calls if decision_calls else None,
@@ -562,7 +578,7 @@ def run_research_analyses(reader, options=None, bootstrap=1000, *, control=None,
                 "prevalence": "Exact 20%, 10%, and 5% vulnerable subsets share one feasible size and deterministic selections across configurations within each dataset/run seed. Shared class-specific permutations make the rate subsets overlap. Twenty draws and a 1,000-sample target are configurable project choices. Samples are drawn without replacement within a draw; draws overlap.",
                 "prevalence_uncertainty": "Draw quantiles describe subset variation. Cluster confidence intervals are conditional on each realized subset; neither is a joint interval over both sources of variation.",
                 "selective_prediction": "Selective accuracy scores answered samples only. No answered samples gives unavailable accuracy/risk. Abstentions identify potential review workload; no human-review outcome or cost is assumed. The paper's Recall still treats vulnerable abstentions as missed detections. Each configuration provides one observed risk-coverage point; no confidence threshold curve is inferred.",
-                "output_audit": "Lengths describe visible response text and backend-reported output tokens separately. Backend token counts can include reasoning tokens; tokenizers differ. Neither length nor rationale-verdict agreement establishes correctness or causality.",
+                "output_audit": "A linked response record can contain a backend error or an empty reply. The visible-response average uses replies with text. Context overflows and other generation errors are counted separately. Output token counts can include reasoning tokens, and tokenizers differ by model.",
                 "review_cases": "A bounded deterministic hash-ranked sample of flagged cases. Blank human-review fields require author review; the exported summaries contain no raw responses or thinking text.",
                 "dataset_audit": "Exact code hashes and supplied identifiers only. Repeated predictions are deduplicated by dataset/sample ID. Missing hashes or metadata limit observed overlap; no samples are dropped or relabeled. CWE categories can overlap."}}
 

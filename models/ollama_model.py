@@ -2,7 +2,8 @@
 
 import requests
 
-from .base import BaseModel, merge_generation_settings
+from .base import BaseModel, ContextSafetyError, ContextWindowExceeded, merge_generation_settings
+from .context_guard import OllamaContextGuard, POLICY_VERSION, context_overflow
 
 
 class OllamaModel(BaseModel):
@@ -11,10 +12,12 @@ class OllamaModel(BaseModel):
     def __init__(self, name: str, gen_cfg: dict):
         super().__init__(name, merge_generation_settings(gen_cfg))
         self.session = requests.Session()
+        self.context_guard = OllamaContextGuard(self)
 
     def get_model_info(self):
         """Record the server's wrapper and model identity, including mutable tags."""
-        info = {"backend": "ollama", "name": self.name, "input_format": "model_template"}
+        info = {"backend": "ollama", "name": self.name, "input_format": "model_template",
+                "context_policy_version": POLICY_VERSION}
         try:
             response = self.session.post("http://127.0.0.1:11434/api/show",
                                          json={"model": self.name}, timeout=10)
@@ -40,11 +43,9 @@ class OllamaModel(BaseModel):
         return info
 
     def generate(self, prompt: str) -> str:
-        """Generate through the local server and retain its timing and status.
-
-        Failures return an empty response with error details in generation info.
-        """
-
+        """Return the completed reply or record why this request failed."""
+        # A setup error affects every sample. Stop before it becomes a scored response.
+        self.context_guard.ensure_verified()
         url = "http://127.0.0.1:11434/api/generate"
         options = {
             "temperature": self.gen_cfg.get("temperature", 0.2),
@@ -62,6 +63,8 @@ class OllamaModel(BaseModel):
             "prompt": prompt,
             "options": options,
             "stream": False,
+            "truncate": False,
+            "shift": False,
         }
         if "think" in self.gen_cfg:
             payload["think"] = self.gen_cfg["think"]
@@ -89,14 +92,56 @@ class OllamaModel(BaseModel):
             }
         )
 
-        response = None
+        response = data = loaded_window = overflow = None
+        requested_budget = options["num_predict"]
+        retry_count = 0
         try:
             response = self.session.post(url, json=payload, timeout=300)
+            if response.status_code in (400, 500):
+                try:
+                    message = str(response.json().get("error", "")).lower()
+                except ValueError:
+                    message = ""
+                overflow = context_overflow(message)
+                if overflow or any(term in message for term in ("context window", "context length", "context size",
+                                                                 "context limit", "context is full", "context full")):
+                    if overflow:
+                        input_tokens, reported_window = overflow
+                        retry_budget = min(context_window, reported_window) - input_tokens
+                    else:
+                        # A smaller context probe can reload the model during another worker's request.
+                        retry_budget = max(1, requested_budget // 2)
+                    if retry_budget <= 0:
+                        raise ContextWindowExceeded("Complete input leaves no room for an answer")
+                    if retry_budget < requested_budget:
+                        options["num_predict"] = retry_budget
+                        retry_count = 1
+                        response = None
+                        response = self.session.post(url, json=payload, timeout=300)
+            if response.status_code == 404:
+                raise ContextSafetyError(f"Ollama could not find {self.name} or the generation endpoint. "
+                                         "Check the installed model and server before resuming.")
             response.raise_for_status()
 
             data = response.json()
+            if not isinstance(data, dict):
+                raise ValueError("Ollama returned an invalid response object")
+            if data.get("error"):
+                raise RuntimeError("Ollama reported a generation error")
+            if data.get("done") is not True:
+                raise RuntimeError("Ollama returned an unfinished response")
             raw_response = data.get("response", "")
-            text = str(raw_response or "").strip()
+            if not isinstance(raw_response, str):
+                raise ValueError("Ollama returned invalid response text")
+            loaded_window = self.context_guard.loaded_window()
+            input_tokens = data.get("prompt_eval_count")
+            if type(input_tokens) is not int or input_tokens < 1:
+                raise ContextSafetyError("Ollama did not report the input token count")
+            remaining = min(context_window, loaded_window) - input_tokens
+            if remaining <= 0 or (data.get("eval_count") or 0) > remaining:
+                raise ContextWindowExceeded("Response exceeded the available context")
+            effective_budget = min(options["num_predict"], remaining)
+            text = raw_response.strip()
             self._set_generation_info(
                 {
                     "backend": "ollama",
@@ -108,6 +153,11 @@ class OllamaModel(BaseModel):
                     "thinking_output": data.get("thinking", ""),
                     "think": self.gen_cfg.get("think"),
                     "context_window": options.get("num_ctx"),
+                    "loaded_context_window": loaded_window,
+                    "context_policy_version": POLICY_VERSION,
+                    "requested_num_predict": requested_budget,
+                    "retry_count": retry_count,
+                    "input_headroom_verified": True,
                     "http_status": response.status_code,
                     "done": data.get("done"),
                     "done_reason": data.get("done_reason"),
@@ -119,7 +169,7 @@ class OllamaModel(BaseModel):
                     "prompt_eval_duration": data.get("prompt_eval_duration"),
                     "eval_count": data.get("eval_count"),
                     "eval_duration": data.get("eval_duration"),
-                    "num_predict": options.get("num_predict"),
+                    "num_predict": effective_budget,
                     "temperature": options.get("temperature"),
                     "top_p": options.get("top_p"),
                     "top_k": options.get("top_k"),
@@ -128,14 +178,23 @@ class OllamaModel(BaseModel):
                     "status": "ok" if text else "empty_response",
                 }
             )
-            return text
+            return raw_response if text else ""
 
+        except requests.ConnectionError as exc:
+            raise ContextSafetyError("Lost the connection to Ollama. Start Ollama again before resuming.") from exc
         except Exception as e:
+            # A single oversized input is scored as UNKNOWN. A broken server setup stops the run.
+            if isinstance(e, ContextSafetyError) and not isinstance(e, ContextWindowExceeded):
+                raise
             error_info = {
                 "backend": "ollama",
                 "model": self.name,
                 "endpoint": url,
                 "prompt_chars": prompt_chars,
+                "context_window": context_window,
+                "loaded_context_window": loaded_window,
+                "requested_num_predict": requested_budget,
+                "retry_count": retry_count,
                 "num_predict": options.get("num_predict"),
                 "temperature": options.get("temperature"),
                 "top_p": options.get("top_p"),
@@ -145,6 +204,17 @@ class OllamaModel(BaseModel):
                 "error_type": type(e).__name__,
                 "error_message": str(e),
             }
+            if overflow is not None:
+                error_info["input_tokens_required"], error_info["reported_context_window"] = overflow
+            if isinstance(data, dict):
+                for field in ("done", "done_reason", "prompt_eval_count", "eval_count"):
+                    if field in data:
+                        error_info[field] = data[field]
+                # Keep unfinished text with the private backend details, outside the scored response.
+                if isinstance(data.get("response"), str):
+                    error_info["raw_response"] = data["response"]
+                if isinstance(data.get("thinking"), str):
+                    error_info["thinking_output"] = data["thinking"]
             if response is not None:
                 error_info["http_status"] = getattr(response, "status_code", None)
                 try:

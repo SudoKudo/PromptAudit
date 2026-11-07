@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping, Sequence
 import hashlib
+from itertools import product
 import json
 from pathlib import Path
 import sqlite3
@@ -247,6 +248,18 @@ class ArtifactReader:
     def _index_standard(self):
         if self.manifest.get("status") not in {"completed", "generated"}:
             raise ValueError("Analysis requires completed Standard generation; resume the interrupted run first")
+        fields = ("selected_datasets", "selected_models", "selected_prompts",
+                  "selected_output_protocols", "selected_parser_modes")
+        selections = [self.manifest.get(field) for field in fields]
+        expected = None
+        if all(selections):
+            datasets, models, prompts, protocols, parsers = selections
+            expected = set(product(
+                [item["name"] if isinstance(item, dict) else item for item in datasets],
+                [_hash(item if isinstance(item, dict) else {"name": str(item), "backend": "ollama"})
+                 for item in models],
+                prompts, protocols, parsers))
+        seen, cohorts = set(), {}
         for record in self._lines("records.jsonl"):
             if record.get("is_partial"):
                 raise ValueError("Analysis requires completed Standard records; resume the interrupted run first")
@@ -260,12 +273,29 @@ class ArtifactReader:
                 "protocol": protocol, "parser_mode": record.get("parser_mode", "full"),
                 "condition": f"standard/{family}/{protocol}", "comparison": "standard", "family": family,
                 "variant": "reference"}
+            predictions = record.get("predictions", [])
+            if expected is not None and record.get("artifact_schema_version", 0) >= 2:
+                key = (context["dataset"], model_id, family, protocol, context["parser_mode"])
+                if key in seen or key not in expected:
+                    raise ValueError("Unexpected or duplicate Standard condition in saved records")
+                seen.add(key)
+                declared = self.manifest.get("dataset_inventory", {}).get(context["dataset"], {}).get("selected_samples")
+                if any(value is not None and value != len(predictions) for value in
+                       (declared, record.get("completed_samples"), record.get("total_samples"))):
+                    raise ValueError("Standard prediction count differs from the saved cohort size")
+                identities = {(str(row.get("sample_uid") or row.get("sample_id", row.get("id"))),
+                               row.get("gold"), row.get("code_sha256")) for row in predictions}
+                if len(identities) != len(predictions) or identities != cohorts.setdefault(context["dataset"], identities):
+                    raise ValueError("Standard conditions contain different or duplicate samples")
+            elif expected is not None:
+                # Old records may lack the model identity used by the checkpoint.
+                expected = None
             settings = {key: value for key, value in params.items()
                         if key not in {"seed", "experiment_name", "experiment_notes", "generated_at"}}
             namespace = record.get("inference_namespace")
             settings_hash = _hash({"generation": settings, "model_info": record.get("model_info"),
                                    "inference_namespace": namespace})
-            for index, saved in enumerate(record.get("predictions", [])):
+            for index, saved in enumerate(predictions):
                 row = dict(saved)
                 linked = bool(row.get("sample_uid") and row.get("code_sha256"))
                 row.setdefault("sample_id", str(row.get("id", index)))
@@ -282,6 +312,8 @@ class ArtifactReader:
                 row.setdefault("pool_calls", row.get("decision_calls"))
                 row.setdefault("decision_seconds", None)
                 self._insert({**row, **context})
+        if expected is not None and seen != expected:
+            raise ValueError("Standard records are missing one or more selected conditions")
 
     def artifact_summary(self):
         return [{"source": index + 1, "kind": kind, "status": manifest.get("status"),

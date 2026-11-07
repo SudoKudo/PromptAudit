@@ -2,6 +2,7 @@
 
 import csv
 import hashlib
+import io
 import json
 import platform
 import random
@@ -378,12 +379,14 @@ def _report_table(title, rows, columns, descriptions=None, *, filterable=True, o
 def _execution_rows(manifest, metrics):
     """Keep session execution counters separate from reused decision costs."""
     names = {row["model_id"]: row["model"] for row in metrics}
+    unique_names = set(names.values())
+    legacy_name = next(iter(unique_names)) if len(unique_names) == 1 else "Unavailable"
     summaries = manifest.get("inference_performance", [])
     if not isinstance(summaries, list):
         return []
     fields = ("workers", "generated_calls", "shared_cache_hits", "run_reuses", "batch_cache_hits", "wall_seconds",
               "generation_seconds", "persistent_cache_enabled", "shared_cache_warning")
-    return [{"model": safe_text(names.get(summary.get("model_id"), summary.get("model_id", "Unavailable"))),
+    return [{"model": safe_text(names.get(summary.get("model_id"), summary.get("model") or summary.get("model_id") or legacy_name)),
              **{field: summary.get(field) for field in fields},
              "shared_cache_warning": summary.get("shared_cache_warning") or "None recorded"}
             for summary in summaries if isinstance(summary, dict)]
@@ -494,9 +497,12 @@ def _write_study_report(path, manifest, metrics, analysis):
           ("draw_details_coverage", "Parser detail coverage")]),
         ("Response length and decision summaries", "output_summaries",
          [("gold", "Gold label"), ("pred", "Prediction"), ("correctness", "Outcome"),
-          ("samples", "Samples"), ("mean_visible_chars_per_call", "Mean visible characters / call"),
+          ("samples", "Samples"), ("visible_response_calls", "Calls with visible text"),
+          ("mean_visible_chars_per_visible_response", "Mean characters / visible response"),
+          ("context_overflow_calls", "Context overflows"), ("other_generation_error_calls", "Other generation errors"),
+          ("empty_response_calls", "Empty responses"), ("output_cap_calls", "Output limit hits"),
           ("mean_output_tokens_per_measured_call", "Mean reported output tokens / measured call"),
-          ("response_measurement_coverage", "Response coverage"), ("token_measurement_coverage", "Token coverage"),
+          ("response_measurement_coverage", "Saved call coverage"), ("token_measurement_coverage", "Token coverage"),
           ("draw_label_counts", "Draw labels"), ("parser_tier_counts", "Parser tiers")]),
         ("CWE breakdowns", "cwe_breakdowns", [("cwe_id", "CWE"), ("samples", "Samples")]
          + [(name, name) for name in DEFAULT_METRICS]),
@@ -604,7 +610,7 @@ footer{font-size:.85rem;color:#4d6070;margin-top:1.5rem}code{overflow-wrap:anywh
     document += "".join(sections)
     document += ('<p>Detailed prevalence draws and their conditional cluster intervals are saved in '
                  '<a href="prevalence_draws.jsonl">prevalence_draws.jsonl</a>; descriptive subset-draw variation is not a confidence interval. '
-                 '<a href="review_cases.csv">review_cases.csv</a> contains compact response IDs and blank author-review fields. '
+                 '<a href="review_cases.csv">review_cases.csv</a> contains response IDs and fields for author review. '
                  'No review is considered complete until the authors fill those fields. Selective accuracy is reported at observed '
                  'coverage; no confidence-threshold curve is inferred and no selective-accuracy interval is claimed.</p>')
     for note in research.get("design_notes", {}).values():
@@ -815,7 +821,42 @@ def _analyze_reader(reader, bootstrap, settings, control, detail_sink=None):
     return metrics, result
 
 
-def _write_analysis_files(stage, metrics, result, manifest, *, standard, control=None):
+def _write_review_cases(path, cases, previous):
+    review_fields = ("rationale_conclusion", "rationale_verdict_consistent", "review_notes")
+    fields = ["case_id", *GROUP_FIELDS, "condition", "sample_uid", "sample_id", "gold", "pred",
+              "generation_ids", "reasons", *review_fields, "candidate_status"]
+
+    def key(row):
+        ids = row.get("generation_ids", [])
+        if isinstance(ids, str):
+            try:
+                ids = json.loads(ids)
+            except ValueError:
+                pass
+        return row.get("case_id"), json.dumps(ids, ensure_ascii=False)
+
+    annotated = {}
+    if previous is not None:
+        for row in csv.DictReader(io.StringIO(previous.decode("utf-8-sig"), newline="")):
+            if any((row.get(field) or "").strip() for field in review_fields):
+                identity = key(row)
+                if identity in annotated:
+                    raise ValueError("The author worksheet contains duplicate annotated cases")
+                annotated[identity] = row
+
+    with path.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
+        writer.writeheader()
+        for case in cases:
+            prior = annotated.pop(key(case), {})
+            row = {**case, **{field: prior.get(field, "") for field in review_fields},
+                   "candidate_status": "current"}
+            writer.writerow({field: json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else value
+                             for field, value in row.items()})
+        writer.writerows({**row, "candidate_status": "previous"} for row in annotated.values())
+
+
+def _write_analysis_files(stage, metrics, result, manifest, *, standard, control=None, previous_review=None):
     metrics_name = "analysis_metrics.csv" if standard else "metrics.csv"
     report_name = "analysis_report.html" if standard else "report.html"
     if metrics:
@@ -829,15 +870,7 @@ def _write_analysis_files(stage, metrics, result, manifest, *, standard, control
     result["report_file"] = report_name
     research = result.get("research", {})
     research["detail_files"] = {"prevalence_draws": "prevalence_draws.jsonl", "review_cases": "review_cases.csv"}
-    cases = research.get("review_cases", [])
-    fields = ["case_id", *GROUP_FIELDS, "condition", "sample_uid", "sample_id", "gold", "pred",
-              "generation_ids", "reasons", "rationale_conclusion", "rationale_verdict_consistent", "review_notes"]
-    with (stage / "review_cases.csv").open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
-        writer.writeheader()
-        for case in cases:
-            writer.writerow({key: json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else value
-                             for key, value in case.items()})
+    _write_review_cases(stage / "review_cases.csv", research.get("review_cases", []), previous_review)
     from .paper_exports import write_paper_exports
     result["paper_exports"] = write_paper_exports(stage, metrics, result, control=control)
     (stage / "analysis.json").write_text(json.dumps(safe_settings(result), indent=2, allow_nan=False) + "\n", encoding="utf-8")
@@ -868,11 +901,16 @@ def analyze_artifacts(output, bootstrap=1000, *, control=None, options=None):
                     stream.write(line)
                 metrics, result = _analyze_reader(reader, bootstrap, settings, control, detail_sink)
             result["analysis_provenance"]["detail_hashes"] = {"prevalence_draws.jsonl": digest.hexdigest()}
+            review_path = reader.output / "review_cases.csv"
+            previous_review = review_path.read_bytes() if review_path.exists() else None
             files = _write_analysis_files(stage, metrics, result, reader.manifest,
-                                          standard=reader.source_kinds[0] == "standard", control=control)
+                                          standard=reader.source_kinds[0] == "standard", control=control,
+                                          previous_review=previous_review)
             if control:
                 control()
             reader.check_inputs()
+            if (review_path.read_bytes() if review_path.exists() else None) != previous_review:
+                raise ValueError("The author worksheet changed during analysis. Save your edits and retry.")
             # There are no cancellation boundaries inside this short commit step.
             # Every file is fully staged before any previous result is replaced.
             for filename in files:

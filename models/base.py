@@ -3,6 +3,14 @@
 import math
 
 
+class ContextSafetyError(RuntimeError):
+    """Input safety could not be established; stop rather than score a partial prompt."""
+
+
+class ContextWindowExceeded(ContextSafetyError):
+    """The complete prompt does not leave room for the requested answer."""
+
+
 def merge_generation_settings(base, overrides=None):
     """Validate settings and merge model overrides using one context-window name."""
     def normalize(settings):

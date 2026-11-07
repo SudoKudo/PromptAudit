@@ -197,7 +197,7 @@ def _prepare_samples(dataset_items, loader, limit):
             raise ValueError(f"Dataset {name} has no samples")
         selected = validate_samples(rows[:limit] if limit is not None else rows, name)
         inventory.setdefault("loaded_samples", len(rows))
-        inventory.setdefault("selected_samples", len(selected))
+        inventory["selected_samples"] = len(selected)
         inventory.setdefault("source_exclusions", inventory.get("excluded_code_files"))
         samples = []
         for index, row in enumerate(selected):
@@ -342,19 +342,18 @@ def run_study(cfg, output=None, *, pilot=False, limit=None, resume=False,
                     control()
                 model = model_loader(model_item, effective.copy())
                 snapshot = _safe_settings(model.get_model_info() if hasattr(model, "get_model_info") else {})
-                previous_snapshot = manifest["resolved_models"].get(model_id)
-                if previous_snapshot is not None and previous_snapshot != snapshot:
-                    raise ValueError("Resume refused: resolved model, runtime, or chat template changed")
-                manifest["resolved_models"][model_id] = snapshot
-                _write_json(manifest_path, manifest)
                 engine = InferenceEngine(model, model_item, model_loader,
                                          performance=cfg.get("performance"), control=control, progress=progress,
                                          model_info=snapshot,
                                          on_response=(lambda key, result: work_progress("generation", key, 1))
                                          if work_progress else None)
+                previous_snapshot = manifest["resolved_models"].get(model_id)
+                if previous_snapshot is not None and previous_snapshot != snapshot:
+                    raise ValueError("Resume refused: resolved model, runtime, or chat template changed")
                 previous_namespace = manifest["inference_namespaces"].get(model_id)
                 if previous_namespace is not None and previous_namespace != engine.namespace:
                     raise InferenceStateError("Resume refused: inference execution environment changed; start a new study")
+                manifest["resolved_models"][model_id] = snapshot
                 manifest["inference_namespaces"][model_id] = engine.namespace
                 _write_json(manifest_path, manifest)
                 for cohort in cohorts:

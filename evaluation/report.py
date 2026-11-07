@@ -332,6 +332,9 @@ body {{ background:#f8fafc; color:var(--text-dark); font-family:'Segoe UI',syste
   text-align: center;
   vertical-align: middle;
 }
+#details-table .detail-sort { background:transparent; border:0; color:inherit; padding:0; }
+#details-table [aria-sort="ascending"] .detail-sort::after { content:" ▲"; }
+#details-table [aria-sort="descending"] .detail-sort::after { content:" ▼"; }
 
 /* Keep the numeric report usable when optional CDN assets are unavailable. */
 body { margin:0; line-height:1.45; }
@@ -373,7 +376,8 @@ summary { cursor:pointer; font-weight:600; }
 @media(max-width:640px) { .container { width:calc(100% - 16px); } .accordion-body { padding:.6rem; } }
 @media print {
   body, [data-bs-theme="dark"] body { background:#fff; color:#000; }
-  button, .form-range, .column-filters, #collapseFilters, .datatable-top, .datatable-bottom { display:none !important; }
+  button, .form-range, .column-filters, .detail-controls, #collapseFilters, .datatable-top, .datatable-bottom { display:none !important; }
+  #details-table .detail-sort { display:inline !important; }
   .accordion-collapse { display:block !important; }
   .table-responsive { overflow:visible; max-height:none; }
   .table thead th { position:static; }
@@ -601,16 +605,38 @@ summary { cursor:pointer; font-weight:600; }
               <div class="d-flex align-items-center gap-2">
                 <button id="resetDetailsFilters" class="btn btn-sm btn-outline-secondary"
                 title="Clear all column filters">Reset Filters</button>
-                <span id="detailCount" class="text-muted small"></span>
+                <span id="detailCount" class="text-muted small" aria-live="polite"></span>
               </div>
             </div>
             <div class="card-body">
+                <div class="detail-controls d-flex align-items-center gap-2">
+                  <label for="detailSearch">Search predictions</label>
+                  <input id="detailSearch" type="search" aria-controls="details-table">
+                  <label for="detailPageSize">Rows per page</label>
+                  <select id="detailPageSize" aria-controls="details-table">
+                    <option>5</option><option selected>10</option><option>25</option>
+                    <option>50</option><option>100</option>
+                  </select>
+                  <button id="detailPrevious" type="button" aria-controls="details-table">Previous page</button>
+                  <button id="detailNext" type="button" aria-controls="details-table">Next page</button>
+                </div>
                 <div class="table-responsive">
                     <table id="details-table" class="table table-sm table-hover table-bordered small align-middle">
                     <thead class="table-light">
                         <tr>
-                        <th>ID</th><th>Dataset</th><th>Protocol</th><th>Parser</th><th>Lang</th><th>Model</th><th>Prompt</th>
-                        <th>Predicted</th><th>True</th><th>Correct?</th><th>CVE</th><th>Pair</th><th>Parse tier</th>
+                        <th scope="col"><button type="button" class="detail-sort">ID</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">Dataset</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">Protocol</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">Parser</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">Lang</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">Model</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">Prompt</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">Predicted</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">True</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">Correct?</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">CVE</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">Pair</button></th>
+                        <th scope="col"><button type="button" class="detail-sort">Parse tier</button></th>
                         </tr>
                     </thead>
                     <tbody id="detailsBody"></tbody>
@@ -645,13 +671,16 @@ function escapeHtml(value) {
 
 // Filters apply to all table pages.
 let resultsTable = null;  // DataTable instance for the top table
-let detailTable  = null;  // DataTable instance for the bottom table
 
-// Caches of every row's textual columns + full HTML, used for fast filtering
 let RESULTS_ALL = [];  // [{cols:[...], html:"<tr>...</tr>"}]
-let DETAILS_ALL = [];  // same shape
+let DETAILS_ALL = [];  // plain columns for filtering the full set
+let DETAILS_MATCHED = [];
 let RESULTS_SOURCE = [];  // current top-level filtered records backing the results table
-let DETAILS_SOURCE = [];  // current top-level filtered records backing the details table
+let detailPage = 0;
+let detailPageSize = 10;
+let detailSortColumn = null;
+let detailSortDirection = 1;
+const detailSort = new Intl.Collator(undefined, { numeric:true, sensitivity:'base' });
 
 // Column filter state maps (per-table)
 const resultsActive = {}; // {colIndex: "value"}
@@ -946,15 +975,7 @@ function renderAll(){
     }
   } catch(e) { console.warn('resultsTable refresh skipped:', e); }
 
-  try {
-    if (!detailTable) {
-      Object.keys(detailsActive).forEach(key=>delete detailsActive[key]);
-      renderDetails(data);
-      initDetailTable();
-    } else {
-      updateDetailTable(data);
-    }
-  } catch(e) { console.warn('detailTable refresh skipped:', e); }
+  renderDetails(data);
 }
 
 /* ----------------------------------------------------------------------------
@@ -1237,10 +1258,9 @@ function exportPDF(){
   const data=applyFilters();
   // Pagination must not silently omit rows from a printed report.
   if(resultsTable) { resultsTable.destroy(); resultsTable=null; }
-  if(detailTable) { detailTable.destroy(); detailTable=null; }
   document.querySelectorAll('.column-filters').forEach(row=>row.remove());
   renderTable(data);
-  renderDetails(data);
+  renderDetails(data, true);
   window.addEventListener('afterprint',renderAll,{once:true});
   window.print();
 }
@@ -1309,90 +1329,72 @@ document.addEventListener('DOMContentLoaded', ()=>{
   renderAll();
 });
 
-/* ----------------------------------------------------------------------------
-   DETAILED TABLE (per-sample)
-   We rebuild a cache (DETAILS_ALL) of all possible rows so column filters
-   can enumerate values reliably even when top filters change.
----------------------------------------------------------------------------- */
-function buildDetailRows(data) {{
-  let total = 0;
-  const rows = [];
+// Keep text for filtering, and build HTML only for rows about to be shown.
+function buildDetailRows(data) {
+  return (data || []).flatMap(rec => (rec.predictions || []).map(p => {
+    const isCorrect = ["safe","vulnerable"].includes(p.gold) && p.gold === p.pred;
+    return { cols: [
+      p.id, rec.dataset, rec.output_protocol || "verdict_first", rec.parser_mode || "full",
+      p.language || rec.language || "-", rec.model, rec.prompt,
+      (p.pred || "unknown").toUpperCase(), (p.gold || "unknown").toUpperCase(),
+      isCorrect ? "Yes" : "No", p.cve_id || "-", p.pair_id ?? "-", p.parse_tier || "unknown"
+    ] };
+  }));
+}
 
-  (data || []).forEach(rec => {{
-    (rec.predictions || []).forEach(p => {
-      total++;
-      const isCorrect = ["safe","vulnerable"].includes(p.gold) && p.gold === p.pred;
-      const predBubble = p.pred === "safe"
-        ? `<span class="sv-pill sv-safe">SAFE</span>`
-        : p.pred === "vulnerable"
-          ? `<span class="sv-pill sv-vuln">VULNERABLE</span>`
-          : `<span class="sv-pill text-muted">UNKNOWN</span>`;
+function detailRowHtml(row) {
+  const cells = row.cols.map((value, index) => {
+    if (index !== 7 && index !== 8) return escapeHtml(value);
+    if (value === "SAFE") return '<span class="sv-pill sv-safe">SAFE</span>';
+    if (value === "VULNERABLE") return '<span class="sv-pill sv-vuln">VULNERABLE</span>';
+    return '<span class="sv-pill text-muted">UNKNOWN</span>';
+  });
+  return `<tr>${cells.map(cell => `<td>${cell}</td>`).join('')}</tr>`;
+}
 
-      const goldBubble = p.gold === "safe"
-        ? `<span class="sv-pill sv-safe">SAFE</span>`
-        : p.gold === "vulnerable"
-          ? `<span class="sv-pill sv-vuln">VULNERABLE</span>`
-          : `<span class="sv-pill text-muted">UNKNOWN</span>`;
-      const icon = isCorrect ? "Yes" : "No";
-      const lang = p.language || rec.language || "-";
+function renderDetailPage(printAll = false) {
+  const total = DETAILS_MATCHED.length;
+  const lastPage = Math.max(0, Math.ceil(total / detailPageSize) - 1);
+  detailPage = Math.min(Math.max(0, detailPage), lastPage);
+  const start = printAll ? 0 : detailPage * detailPageSize;
+  const end = printAll ? total : Math.min(start + detailPageSize, total);
+  document.getElementById('detailsBody').innerHTML =
+    DETAILS_MATCHED.slice(start, end).map(detailRowHtml).join('') ||
+    "<tr><td colspan='13' class='text-muted'>No predictions match the filters.</td></tr>";
+  document.getElementById('detailCount').textContent = total
+    ? `Showing ${start + 1 === end ? end : `${start + 1}-${end}`} of ${total} ${total === 1 ? 'prediction' : 'predictions'}`
+    : "No predictions match the filters";
+  document.getElementById('detailPrevious').disabled = detailPage === 0;
+  document.getElementById('detailNext').disabled = detailPage === lastPage;
+}
 
-      // The `cols` array holds plain text per column for filtering.
-      const cols = [
-        p.id,
-        rec.dataset,
-        rec.output_protocol || "verdict_first",
-        rec.parser_mode || "full",
-        lang,
-        rec.model,
-        rec.prompt,
-        (p.pred || "").toUpperCase(),
-        (p.gold || "").toUpperCase(),
-        icon,
-        p.cve_id || "-",
-        p.pair_id ?? "-",
-        p.parse_tier || "unknown"
-      ];
-      const html = `
-        <tr>
-          <td>${escapeHtml(cols[0])}</td>
-          <td>${escapeHtml(cols[1])}</td>
-          <td>${escapeHtml(cols[2])}</td>
-          <td>${escapeHtml(cols[3])}</td>
-          <td>${escapeHtml(cols[4])}</td>
-          <td>${escapeHtml(cols[5])}</td>
-          <td>${escapeHtml(cols[6])}</td>
-          <td>${predBubble}</td>
-          <td>${goldBubble}</td>
-          <td>${escapeHtml(cols[9])}</td>
-          ${cols.slice(10).map(value=>`<td>${escapeHtml(value)}</td>`).join('')}
-        </tr>`;
-      rows.push({
-        cols,
-        html,
-        cells: [
-          ...cols.slice(0, 7).map(escapeHtml),
-          predBubble,
-          goldBubble,
-          escapeHtml(cols[9]),
-          ...cols.slice(10).map(escapeHtml)
-        ]
-      });
-    });
-  }});
+function refreshDetailFilters(printAll = false) {
+  const selected = Object.entries(detailsActive).filter(([, value]) => value);
+  const search = document.getElementById('detailSearch').value.trim().toLowerCase();
+  const terms = search ? search.split(/\\s+/) : [];
+  DETAILS_MATCHED = DETAILS_ALL.filter(row => {
+    if (!selected.every(([idx, value]) => String(row.cols[idx] ?? '').trim().toLowerCase() === value)) {
+      return false;
+    }
+    if (!terms.length) return true;
+    const text = row.cols.join(' ').toLowerCase();
+    return terms.every(term => text.includes(term));
+  });
+  if (detailSortColumn !== null) {
+    DETAILS_MATCHED.sort((a, b) => detailSortDirection * detailSort.compare(
+      String(a.cols[detailSortColumn] ?? ''), String(b.cols[detailSortColumn] ?? '')
+    ));
+  }
+  detailPage = 0;
+  renderDetailPage(printAll);
+}
 
-  return { rows, total };
-}}
-
-function renderDetails(data){
-  const tbody = document.getElementById('detailsBody');
-  if(!tbody) return;
-
-  DETAILS_SOURCE = [...(data || [])];
-  const detailState = buildDetailRows(DETAILS_SOURCE);
-  DETAILS_ALL = detailState.rows;
-  tbody.innerHTML = DETAILS_ALL.map(x => x.html).join("") || "<tr><td colspan='13' class='text-muted'>No predictions available.</td></tr>";
-  const dc = document.getElementById('detailCount');
-  if(dc) dc.textContent = `Showing ${detailState.total} predictions`;
+function renderDetails(data, printAll = false) {
+  Object.keys(detailsActive).forEach(key => delete detailsActive[key]);
+  document.getElementById('detailSearch').value = '';
+  DETAILS_ALL = buildDetailRows(data);
+  refreshDetailFilters(printAll);
+  if (!printAll) addColumnFilters('#details-table', null);
 }
 
 /* ----------------------------------------------------------------------------
@@ -1414,8 +1416,9 @@ function addColumnFilters(tableSelector, instance) {
   const thead = tableEl.querySelector("thead");
   if (!thead) return;
 
-  const active = tableSelector === "#results-table" ? resultsActive : detailsActive;
-  const bag = tableSelector === "#results-table" ? RESULTS_ALL : DETAILS_ALL;
+  const isResults = tableSelector === "#results-table";
+  const active = isResults ? resultsActive : detailsActive;
+  const bag = isResults ? RESULTS_ALL : DETAILS_ALL;
 
   // Rebuild the column menus after replacing rows.
   const old = thead.querySelector(".column-filters");
@@ -1430,20 +1433,21 @@ function addColumnFilters(tableSelector, instance) {
     const cell = document.createElement("th");
 
     // Skip numeric metric columns in the Results table (keep filters to text cols)
-    if (tableSelector === "#results-table" && colIndex >= 8) {
+    if (isResults && colIndex >= 8) {
       filterRow.appendChild(cell);
       return;
     }
 
     const select = document.createElement("select");
     select.className = "form-select form-select-sm";
+    select.setAttribute("aria-label", `Filter by ${th.textContent.trim()}`);
     select.innerHTML = `<option value="">All</option>`;
 
     // Populate unique values from the cached rows.
     // The Lang column on the aggregate results table needs per-language options,
     // not the combined summary string shown in the cell.
     const values = new Set();
-    if (tableSelector === "#results-table" && colIndex === 7) {
+    if (isResults && colIndex === 7) {
       bag.forEach(r => (r.languageLabels || []).forEach(name => values.add(name)));
     } else {
       bag.forEach(r => values.add((r.cols[colIndex] ?? "").toString()));
@@ -1469,15 +1473,11 @@ function addColumnFilters(tableSelector, instance) {
       // Store the filter value as lowercase for consistent comparison
       active[colIndex] = e.target.value.trim().toLowerCase();
 
-      const filtered = tableSelector === "#results-table"
-        ? buildResultsRowsFromActiveFilters()
-        : bag.filter(row =>
-            Object.entries(active).every(([idx, val]) => {
-              if (!val) return true; // empty = "All"
-              const text = (row.cols[idx] ?? "").toString().trim().toLowerCase();
-              return text === val;
-            })
-          );
+      if (!isResults) {
+        refreshDetailFilters();
+        return;
+      }
+      const filtered = buildResultsRowsFromActiveFilters();
 
       // Use DataTables API for pagination-safe updates
       if (instance && instance.rows && typeof instance.insert === "function") {
@@ -1496,18 +1496,12 @@ function addColumnFilters(tableSelector, instance) {
           `<tr><td colspan='${colCount}' class='text-muted'>No data matches filters.</td></tr>`;
       }
 
-      // Update the little "count" text on the right side of each card header
-      if (tableSelector === "#results-table") {
-        const totalBag = buildResultsCache(
-          (resultsActive[7] || '').trim()
-            ? RESULTS_SOURCE.map(r => recordForSelectedLanguage(r, resultsActive[7])).filter(Boolean)
-            : RESULTS_SOURCE
-        );
-        setRecordCount(filtered.length, totalBag.length, filtered.filter(r => r.isPartial).length);
-      } else {
-        const dc = document.getElementById('detailCount');
-        if (dc) dc.textContent = `Showing ${filtered.length} predictions`;
-      }
+      const totalBag = buildResultsCache(
+        (resultsActive[7] || '').trim()
+          ? RESULTS_SOURCE.map(r => recordForSelectedLanguage(r, resultsActive[7])).filter(Boolean)
+          : RESULTS_SOURCE
+      );
+      setRecordCount(filtered.length, totalBag.length, filtered.filter(r => r.isPartial).length);
     });
 
     cell.appendChild(select);
@@ -1546,7 +1540,11 @@ function resetColumnFilters(tableSelector, instance, activeMap) {
   selects.forEach(sel => sel.value = "");
   Object.keys(activeMap).forEach(k => delete activeMap[k]);
 
-  const bag = tableSelector === "#results-table" ? RESULTS_ALL : DETAILS_ALL;
+  if (tableSelector === "#details-table") {
+    refreshDetailFilters();
+    return;
+  }
+  const bag = RESULTS_ALL;
 
   // Use the same refresh logic as addColumnFilters for pagination safety.
   if (instance && instance.rows && typeof instance.insert === "function") {
@@ -1565,13 +1563,7 @@ function resetColumnFilters(tableSelector, instance, activeMap) {
       `<tr><td colspan='${colCount}' class='text-muted'>No predictions available.</td></tr>`;
   }
 
-  // Update counters
-  if (tableSelector === "#results-table") {
-    setRecordCount(bag.length, RESULTS_ALL.length, bag.filter(r => r.isPartial).length);
-  } else {
-    const dc = document.getElementById('detailCount');
-    if (dc) dc.textContent = `Showing ${bag.length} predictions`;
-  }
+  setRecordCount(bag.length, RESULTS_ALL.length, bag.filter(r => r.isPartial).length);
 }
 
 /* ----------------------------------------------------------------------------
@@ -1601,30 +1593,6 @@ function initResultsTable() {
 }
 
 /* ----------------------------------------------------------------------------
-   DATATABLE INITIALIZATION (bottom detailed table)
----------------------------------------------------------------------------- */
-function initDetailTable() {
-  if (detailTable) {
-    detailTable.destroy();
-    detailTable = null;
-  }
-  if(!window.simpleDatatables?.DataTable) { addColumnFilters('#details-table',null); return; }
-  detailTable = new simpleDatatables.DataTable("#details-table", {
-    searchable: true,
-    sortable: true,
-    fixedHeight: false,
-    perPage: 10,
-    perPageSelect: [5,10,25,50,100]
-  });
-
-  setTimeout(() => addColumnFilters("#details-table", detailTable), 50);
-
-  // Initialize the detail count immediately
-  const dc = document.getElementById('detailCount');
-  if (dc) dc.textContent = `Showing ${DETAILS_ALL.length} predictions`;
-}
-
-/* ----------------------------------------------------------------------------
    UPDATE RESULTS TABLE (top) AFTER FILTERS CHANGE
 ---------------------------------------------------------------------------- */
 function updateResultsTable(data) {
@@ -1643,25 +1611,6 @@ function updateResultsTable(data) {
 }
 
 /* ----------------------------------------------------------------------------
-   UPDATE DETAILED TABLE (bottom) AFTER FILTERS CHANGE
----------------------------------------------------------------------------- */
-function updateDetailTable(data) {
-  if (!detailTable) return;
-  Object.keys(detailsActive).forEach(k => delete detailsActive[k]);
-  DETAILS_SOURCE = [...(data || [])];
-  const detailState = buildDetailRows(DETAILS_SOURCE);
-  DETAILS_ALL = detailState.rows;
-  const newRows = DETAILS_ALL.map(r => r.cells);
-
-  replaceTableRows(detailTable,newRows);
-  setTimeout(() => addColumnFilters("#details-table", detailTable), 0);
-
-  // Update the "Showing N predictions" label
-  const dc = document.getElementById('detailCount');
-  if (dc) dc.textContent = `Showing ${detailState.total} predictions`;
-}
-
-/* ----------------------------------------------------------------------------
    RESET BUTTONS FOR COLUMN FILTERS (top & bottom tables)
 ---------------------------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
@@ -1673,7 +1622,32 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   btnDet?.addEventListener("click", () => {
-    resetColumnFilters("#details-table", detailTable, detailsActive);
+    resetColumnFilters("#details-table", null, detailsActive);
+  });
+
+  document.getElementById('detailSearch').addEventListener('input', () => refreshDetailFilters());
+  document.getElementById('detailPageSize').addEventListener('change', event => {
+    detailPageSize = Number(event.target.value);
+    detailPage = 0;
+    renderDetailPage();
+  });
+  document.getElementById('detailPrevious').addEventListener('click', () => {
+    detailPage--;
+    renderDetailPage();
+  });
+  document.getElementById('detailNext').addEventListener('click', () => {
+    detailPage++;
+    renderDetailPage();
+  });
+  const detailHeaders = document.querySelectorAll('#details-table .detail-sort');
+  detailHeaders.forEach((button, index) => {
+    button.addEventListener('click', () => {
+      detailSortDirection = detailSortColumn === index ? -detailSortDirection : 1;
+      detailSortColumn = index;
+      detailHeaders.forEach(header => header.parentElement.removeAttribute('aria-sort'));
+      button.parentElement.setAttribute('aria-sort', detailSortDirection === 1 ? 'ascending' : 'descending');
+      refreshDetailFilters();
+    });
   });
 
   updatePartialSummary(RECORDS);

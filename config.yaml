@@ -1,69 +1,40 @@
-# =========================================================
-# PromptAudit v3.0 configuration
-# Binary SAFE/VULNERABLE classification settings
-#
-# This file defines:
-#   - Default generation settings used by the runner / GUI
-#   - Available models (Ollama, HF, API)
-#   - Prompt strategies
-#   - Datasets
-#   - Report + CSV output locations
-# =========================================================
+# PromptAudit 3.0
 
-# ---------------------------------------------------------
-# Debug / Logging Flags
-# ---------------------------------------------------------
-debug_raw_outputs: false  # Enable only when diagnosing prompt/output issues; it slows long runs and floods logs
+debug_raw_outputs: false  # Include raw prompts and replies in the run log
 
-# ---------------------------------------------------------
-# Performance Controls
-# These reduce avoidable overhead in long runs without
-# changing prompts, voting rules, or metric formulas.
-# ---------------------------------------------------------
 performance:
-  # Portable default. Parallel requests currently support Ollama only.
+  # Only Ollama supports more than one worker.
   inference_workers: 1
 
   # Reuse identical successful requests on this computer.
   response_cache: true
   cache_root: results/cache
-  # Set a generic server-profile tag and an explicit context window to enable Ollama cross-run reuse.
+  # Ollama cross-run reuse needs a profile and an explicit context window.
   cache_profile: ""
 
   # Collect predictions now and run saved-result analysis later.
   defer_analysis: false
 
-  # Reuse backend objects across prompt/protocol/parser combos
-  # within a single run. This especially helps HF models.
+  # Keep the current model loaded between conditions.
   cache_models: true
 
-  # Prompt objects are lightweight, but caching avoids repeated imports.
   cache_prompts: true
 
-  # When verbose debug logging is enabled, also persist the run monitor
-  # log to results/runs/<run_id>/debug.log for later inspection.
+  # Save verbose logs to debug.log in the run folder.
   save_debug_log: false
 
-  # Checkpoint progress periodically instead of rewriting checkpoint.json
-  # after every sample.
+  # Save Standard progress after this many samples or seconds.
   checkpoint_every_n_samples: 10
   checkpoint_every_seconds: 15.0
-
-  # Throttle GUI/log progress updates on large runs.
   progress_every_n_samples: 10
 
-  # Keep the machine awake while an active run is executing.
-  # On Windows this prevents system sleep; the display may still sleep
-  # unless keep_display_awake is also enabled.
+  # Windows can keep the system awake while letting the display sleep.
   prevent_system_sleep: true
   keep_display_awake: false
 
-  # Optional pacing between self-consistency votes.
-  # Keep at 0 locally unless a backend needs throttling.
+  # Optional delay between self-consistency draws.
   sc_vote_delay_seconds: 0.0
 
-  # Ask Ollama to keep loaded models warm between requests/combos.
-  # This can reduce repeated model load latency on long local runs.
   ollama_keep_alive: 30m
 
 # Saved-result analysis. These settings do not change model requests.
@@ -80,107 +51,58 @@ analysis:
   dataset_audit: true
   review_case_limit: 50
 
-# ---------------------------------------------------------
-# Generation Configuration
-# These defaults are loaded at startup and then copied into
-# the runner. The GUI can override these values at runtime.
-# ---------------------------------------------------------
 generation:
-  # Sampling settings held fixed across matched conditions.
   temperature: 0.2
-
-  # Nucleus sampling threshold.
   top_p: 0.9
-
-  # Maximum candidate-token count for top-k sampling.
   top_k: 40
-
-  # Maximum output budget, not a target length. Check completion in a real-model pilot.
+  # Maximum answer length. Set context_window separately for Ollama.
   max_new_tokens: 1024
-
-  # Penalizes repeated tokens; > 1.0 pushes the model away
-  # from repeating itself. 1.0 = no penalty.
   repetition_penalty: 1.0
-
-  # API-only option (ignored by most local backends):
-  # penalizes frequent tokens to diversify output.
+  # Frequency and presence penalties apply to the completion API.
   frequency_penalty: 0.0
-
-  # API-only option (ignored by most local backends):
-  # penalizes tokens already present in the context.
   presence_penalty: 0.0
-
-  # Beam search width for HF models. 1 = no beam search
-  # (pure sampling / greedy).
   num_beams: 1
-
-  # Number of self-consistency samples (used by the
-  # self_consistency prompt strategy). The strategy decides
-  # how to aggregate these.
   sc_samples: 5
-
-  # Seed for reproducibility. Not all backends respect this,
-  # but when honored it helps make runs repeatable.
   seed: 42
-
-  # Stop strings passed to the backend; empty means no project-defined stops.
   stop_sequences: []
-
-  # Optional experiment label shown in logs / report footer.
   experiment_name: "Default Run"
-
-  # Optional free-form notes for this configuration.
   experiment_notes: ""
 
-# ---------------------------------------------------------
-# Output Configuration
-# Controls where experiment results are written on disk.
-# Paths are relative to the project root.
-# ---------------------------------------------------------
 output:
-  # Master metrics CSV (one row per dataset x model x prompt).
   results_csv: results/csv/metrics.csv
 
-  # Interactive HTML report (charts, tables, filters).
   report_html: results/report.html
 
-  # Each run gets its own timestamped artifact folder under this root.
   run_root: results/runs
 
-# ---------------------------------------------------------
-# Model Definitions
-# Each entry describes one model that can be selected in
-# the GUI. "name" must match the actual Ollama tag or
-# HF model id, and "backend" controls which loader is used.
-# ---------------------------------------------------------
 models:
-  # Offline workflow checks; use pilot mode for matched studies.
+  # The dummy backend is for pilots.
   - name: dummy
     backend: dummy
 
-  # Local Ollama models used in the paper's controlled study.
+  # Names must match the installed Ollama tags.
   - name: mistral:latest
     backend: ollama
+    context_window: 32768
 
   - name: gemma:7b
     backend: ollama
+    context_window: 8192
 
   - name: codellama:7b-instruct
     backend: ollama
+    context_window: 16384
 
-  # Use the instruct variant to align with system-style prompts.
+  # The checkpoint has a 2K context, so cap the answer at 512.
   - name: falcon:7b-instruct
     backend: ollama
+    context_window: 2048
+    max_new_tokens: 512
 
   - name: deepseek-coder:6.7b-instruct
     backend: ollama
+    context_window: 16384
 
-# ---------------------------------------------------------
-# Prompt Strategies
-# Each string here maps to a prompt implementation under
-# prompts/ (for example, prompts/zero_shot.py, prompts/cot.py).
-# These show up as selectable strategies in the GUI.
-# ---------------------------------------------------------
 prompts:
   - zero_shot         # Single-pass classification, no examples
   - few_shot          # Uses small labeled examples in the prompt
@@ -189,22 +111,12 @@ prompts:
   - self_consistency  # Multiple sampled chains with voting
   - self_verification # Adds a self-check step before the final verdict
 
-# ---------------------------------------------------------
-# Ablation Controls
-# These define which protocol/parser variants the GUI can
-# expose and which ones are selected by default.
-# ---------------------------------------------------------
 ablations:
   available_output_protocols: [verdict_first, verdict_last]
   default_output_protocols: [verdict_first]
   available_parser_modes: [strict, structured, full]
   default_parser_modes: [full]
 
-# ---------------------------------------------------------
-# Datasets
-# Each dataset name corresponds to a loader in
-# code_datasets/dataset_loader.py (for example, "toy", "cvefixes").
-# ---------------------------------------------------------
 datasets:
   # Small mixed-language function-level dataset for smoke tests and demos.
   - name: toy
@@ -228,7 +140,7 @@ datasets:
     source: local
     path: data/cvefixes/cvefixes_1000.csv.gz
 
-  # Local BigVul subsets; the numeric suffix counts CVEs, not code samples.
+  # BigVul suffixes count CVEs. Each CVE can have several code samples.
   - name: bigvul_50
     source: local
     path: data/bigvul/bigvul_50.csv
@@ -252,9 +164,7 @@ datasets:
   - name: vul4j
     source: hf
 
-# ---------------------------------------------------------
-# Settings for the optional completion API backend.
-# ---------------------------------------------------------
+# Optional completion API
 api:
   api_host: https://api.openai.com
   # Set PROMPTAUDIT_API_KEY or OPENAI_API_KEY in your environment.

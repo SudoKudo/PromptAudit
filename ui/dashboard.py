@@ -18,8 +18,7 @@ from ttkbootstrap.scrolled import ScrolledFrame
 from ttkbootstrap.tooltip import ToolTip
 from tkinter import IntVar, DoubleVar, StringVar
 
-# --- Project path wiring -----------------------------------------------------
-# Ensure the project root is on sys.path so imports like core.runner work
+# Direct launches from ui/ need the project root on the import path.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from core.runner import ExperimentRunner
 from core.revision_study import StudyRunner
@@ -31,7 +30,7 @@ from prompts.template_variants import COMPONENTS, FAMILIES, VARIANTS, template_m
 from evaluation.voting import POLICIES
 from utils.privacy import safe_settings, safe_text
 
-# --- Global constants / metadata ---------------------------------------------
+# Global constants / metadata
 VERSION_TAG = f"PromptAudit {__version__}"
 STUDY_MODES = {
     "standard": "Standard prompts",
@@ -43,9 +42,7 @@ STUDY_MODES = {
 PREFS_PATH = "ui/user_prefs.yaml"
 PRESETS_DIR = "ui/presets"
 
-# ---------------------------------------------------------------------
 # YAML Helpers (load/save prefs and presets)
-# ---------------------------------------------------------------------
 def load_yaml(path: str):
     """
     Load YAML from a given path.
@@ -224,9 +221,7 @@ def build_gui_jobs(runtime, prefs, models, prompts, datasets, protocols, parsers
     return copy.deepcopy(jobs)
 
 
-# ---------------------------------------------------------------------
 # Model Helpers
-# ---------------------------------------------------------------------
 def model_key(model_cfg: dict) -> str:
     """Stable selection key that preserves backend metadata across the GUI."""
     backend = str(model_cfg.get("backend", "ollama")).strip().lower()
@@ -290,9 +285,7 @@ def list_available_models(model_cfgs):
         return normalized
 
 
-# ---------------------------------------------------------------------
 # Dashboard Class
-# ---------------------------------------------------------------------
 class PromptAuditDashboard(tb.Window):
     """Configure experiments, run them in a worker thread, and display progress."""
 
@@ -302,14 +295,14 @@ class PromptAuditDashboard(tb.Window):
         self.geometry("1360x820")
         self.minsize(1280, 760)
 
-        # --- Config and user prefs ------------------------------------------
+        # Config and user prefs
         self.cfg = load_yaml("config.yaml")
 
         self.prefs = load_yaml(PREFS_PATH)
 
         os.makedirs(PRESETS_DIR, exist_ok=True)
 
-        # --- Async / state ---------------------------------------------------
+        # Async / state
         # Thread-safe queue for messages from the worker thread
         self.msg_queue = queue.Queue()
 
@@ -323,7 +316,7 @@ class PromptAuditDashboard(tb.Window):
         self._last_prefs_snapshot = None
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        # --- Selections for models / prompts / datasets ----------------------
+        # Selections for models / prompts / datasets
         self.model_options = list_available_models(self.cfg.get("models", []))
         self.model_cfg_by_key = {model_key(cfg): cfg for cfg in self.model_options}
         self.model_label_by_key = {key: model_label(cfg) for key, cfg in self.model_cfg_by_key.items()}
@@ -407,35 +400,30 @@ class PromptAuditDashboard(tb.Window):
         # Resume metadata shown in the controls.
         self.latest_checkpoint_path = None
 
-        # --- Metadata (experiment name + notes) ------------------------------
+        # Metadata (experiment name + notes)
         self.var_exp_name = StringVar(value=self.prefs.get("experiment_name", "Untitled Experiment"))
         self.var_exp_notes = tk.StringVar(value=self.prefs.get("experiment_notes", ""))
 
-        # --- Generation variables (synced with config.yaml + prefs) ----------
+        # Generation variables (synced with config.yaml + prefs)
         gen_cfg = self.cfg.get("generation", {})
         perf_cfg = self.cfg.get("performance", {})
 
-        # Temperature slider (float)
         self.var_temp = DoubleVar(
             value=float(self.prefs.get("temperature", gen_cfg.get("temperature", 0.2)))
         )
 
-        # Top-p slider (float)
         self.var_top_p = DoubleVar(
             value=float(self.prefs.get("top_p", gen_cfg.get("top_p", 0.9)))
         )
 
-        # Max new tokens spinbox (int)
         self.var_maxnew = IntVar(
             value=int(self.prefs.get("max_new_tokens", gen_cfg.get("max_new_tokens", 1024)))
         )
 
-        # Frequency penalty slider (float)
         self.var_freq_pen = DoubleVar(
             value=float(self.prefs.get("frequency_penalty", gen_cfg.get("frequency_penalty", 0.0)))
         )
 
-        # Presence penalty slider (float)
         self.var_pres_pen = DoubleVar(
             value=float(self.prefs.get("presence_penalty", gen_cfg.get("presence_penalty", 0.0)))
         )
@@ -455,7 +443,7 @@ class PromptAuditDashboard(tb.Window):
             value=int(self.prefs.get("sc_samples", gen_cfg.get("sc_samples", 5)))
         )
 
-        # --- Performance / runtime controls ---------------------------------
+        # Performance / runtime controls
         self.var_debug_raw_outputs = IntVar(
             value=1 if self.prefs.get("debug_raw_outputs", self.cfg.get("debug_raw_outputs", False)) else 0
         )
@@ -493,7 +481,7 @@ class PromptAuditDashboard(tb.Window):
             value=str(self.prefs.get("cache_profile", perf_cfg.get("cache_profile", "")))
         )
 
-        # --- Preset UI state -------------------------------------------------
+        # Preset UI state
         self.var_preset_name = StringVar()
         self.var_preset_select = StringVar(value="(select preset)")
 
@@ -503,12 +491,9 @@ class PromptAuditDashboard(tb.Window):
         self._refresh_study_controls()
         self._refresh_resume_checkpoint_ui()
 
-        # Start polling for messages from the worker thread
         self.after(150, self._poll_msgs)
 
-    # -----------------------------------------------------------------
     # UI construction
-    # -----------------------------------------------------------------
     def _build_ui(self):
         """
         Construct the two-pane layout:
@@ -519,7 +504,7 @@ class PromptAuditDashboard(tb.Window):
         root = tb.Panedwindow(self, orient="horizontal")
         root.pack(fill="both", expand=True, padx=8, pady=8)
 
-        # LEFT: Control column -------------------------------------------------
+        # LEFT: Control column
         left_col = tb.Labelframe(root, text="Experiment Control", padding=8)
         left_col.configure(width=560)
         root.add(left_col, weight=0)
@@ -538,7 +523,7 @@ class PromptAuditDashboard(tb.Window):
             justify="left",
         ).pack(fill="x", pady=(0, 8))
 
-        # --- Experiment Metadata --------------------------------------------
+        # Experiment Metadata
         meta = tb.Labelframe(left_inner, text="Experiment Metadata", padding=8, bootstyle="primary")
         meta.pack(fill="x")
 
@@ -552,14 +537,14 @@ class PromptAuditDashboard(tb.Window):
 
         lbl_notes = tb.Label(meta, text="Notes")
         lbl_notes.grid(row=1, column=0, sticky="nw", padx=4, pady=4)
-        ToolTip(lbl_notes, text="Any context about goals, changes, or hypotheses for this run.")
+        ToolTip(lbl_notes, text="Notes to keep with the run.")
         self.txt_notes = tk.Text(meta, height=2, wrap="word")
         self.txt_notes.insert("1.0", self.var_exp_notes.get())
         self.txt_notes.grid(row=1, column=1, sticky="ew", padx=4, pady=4)
         self.txt_notes.bind("<FocusOut>", self._schedule_persist_prefs)
         meta.grid_columnconfigure(1, weight=1)
 
-        # --- Quick actions ---------------------------------------------------
+        # Quick actions
         quick_actions = tb.Frame(left_inner)
         quick_actions.pack(fill="x", pady=(8, 0))
 
@@ -635,7 +620,7 @@ class PromptAuditDashboard(tb.Window):
         self.resume_saved_label = tb.Label(resume_saved_box, text=resume_text, bootstyle="secondary")
         self.resume_saved_label.pack(side="left", fill="x", expand=True)
 
-        # --- Selection grid --------------------------------------------------
+        # Selection grid
         selection_row = tb.Frame(left_inner)
         selection_row.pack(fill="x", pady=(8, 0))
         selection_row.grid_columnconfigure(0, weight=1, uniform="select")
@@ -646,7 +631,7 @@ class PromptAuditDashboard(tb.Window):
         select_right = tb.Frame(selection_row)
         select_right.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
 
-        # --- Models ----------------------------------------------------------
+        # Models
         models_box = tb.Labelframe(select_left, text="Models", padding=8, bootstyle="primary")
         models_box.pack(fill="x")
         lbl_models = tb.Label(models_box, text="Select Models")
@@ -663,21 +648,22 @@ class PromptAuditDashboard(tb.Window):
                 command=self._schedule_persist_prefs,
             ).pack(anchor="w")
 
-        # --- Datasets --------------------------------------------------------
+        # Datasets
         data_box = tb.Labelframe(select_left, text="Datasets", padding=8, bootstyle="primary")
         data_box.pack(fill="x", pady=(8, 0))
         lbl_data = tb.Label(data_box, text="Select Datasets")
         lbl_data.pack(anchor="w")
-        ToolTip(lbl_data, text="Datasets of code samples (toy, cvefixes, bigvul, etc.).")
+        ToolTip(lbl_data, text="Choose the datasets to evaluate. Ollama records oversized inputs as UNKNOWN and continues.")
         for name, var in self.sel_datasets.items():
-            tb.Checkbutton(
+            button = tb.Checkbutton(
                 data_box,
                 text=name,
                 variable=var,
                 command=self._schedule_persist_prefs,
-            ).pack(anchor="w")
+            )
+            button.pack(anchor="w")
 
-        # --- Prompts ---------------------------------------------------------
+        # Prompts
         prompts_box = tb.Labelframe(select_right, text="Prompt Strategies", padding=8, bootstyle="primary")
         self.prompts_box = prompts_box
         prompts_box.pack(fill="x")
@@ -698,7 +684,7 @@ class PromptAuditDashboard(tb.Window):
             button.pack(anchor="w")
             self.prompt_buttons[name] = button
 
-        # --- Ablations -------------------------------------------------------
+        # Ablations
         ablation_box = tb.Labelframe(select_right, text="Ablations", padding=8, bootstyle="warning")
         self.ablation_box = ablation_box
         ablation_box.pack(fill="x", pady=(8, 0))
@@ -746,12 +732,12 @@ class PromptAuditDashboard(tb.Window):
 
         self._build_study_controls(left_inner)
 
-        # --- Generation settings -------------------------------------------
+        # Generation settings
         gen = tb.Labelframe(left_inner, text="Generation Settings", padding=8, bootstyle="info")
         self.generation_box = gen
         gen.pack(fill="x", pady=(8, 0))
 
-        # Temperature ---------------------------------------------------------
+        # Temperature
         lbl_temp = tb.Label(gen, text="Temperature")
         lbl_temp.grid(row=0, column=0, sticky="w", padx=4, pady=4)
         ToolTip(
@@ -769,7 +755,7 @@ class PromptAuditDashboard(tb.Window):
         self.lbl_temp_val = tb.Label(gen, text=f"{self.var_temp.get():.2f}")
         self.lbl_temp_val.grid(row=0, column=2, sticky="w", padx=4)
 
-        # Top-P ---------------------------------------------------------------
+        # Top-P
         lbl_topp = tb.Label(gen, text="Top-P")
         lbl_topp.grid(row=1, column=0, sticky="w", padx=4, pady=4)
         ToolTip(lbl_topp, text="Nucleus sampling. Lower values consider fewer, more likely tokens.")
@@ -784,7 +770,7 @@ class PromptAuditDashboard(tb.Window):
         self.lbl_topp_val = tb.Label(gen, text=f"{self.var_top_p.get():.2f}")
         self.lbl_topp_val.grid(row=1, column=2, sticky="w", padx=4)
 
-        # Top-K ---------------------------------------------------------------
+        # Top-K
         lbl_topk = tb.Label(gen, text="Top-K")
         lbl_topk.grid(row=2, column=0, sticky="w", padx=4, pady=4)
         ToolTip(lbl_topk, text="Restricts sampling to the top K most probable tokens.")
@@ -803,10 +789,14 @@ class PromptAuditDashboard(tb.Window):
         self.spin_top_k.bind("<FocusOut>", self._schedule_persist_prefs)
         self.spin_top_k.bind("<Return>", self._schedule_persist_prefs)
 
-        # Max New Tokens ------------------------------------------------------
-        lbl_max = tb.Label(gen, text="Max New Tokens")
+        # Output budget
+        lbl_max = tb.Label(gen, text="Max output tokens")
         lbl_max.grid(row=3, column=0, sticky="w", padx=4, pady=4)
-        ToolTip(lbl_max, text="Limits the maximum number of tokens the model can generate.")
+        output_help = (
+            "Maximum tokens in the answer. "
+            "The context window holds the prompt, code, and answer together."
+        )
+        ToolTip(lbl_max, text=output_help)
         self.spin_max_tokens = tb.Spinbox(
             gen,
             from_=16,
@@ -816,10 +806,11 @@ class PromptAuditDashboard(tb.Window):
             command=self._schedule_persist_prefs,
         )
         self.spin_max_tokens.grid(row=3, column=1, sticky="w", padx=4)
+        ToolTip(self.spin_max_tokens, text=output_help)
         self.spin_max_tokens.bind("<FocusOut>", self._schedule_persist_prefs)
         self.spin_max_tokens.bind("<Return>", self._schedule_persist_prefs)
 
-        # Repetition Penalty --------------------------------------------------
+        # Repetition Penalty
         lbl_rep = tb.Label(gen, text="Repetition Penalty")
         lbl_rep.grid(row=4, column=0, sticky="w", padx=4, pady=4)
         ToolTip(
@@ -845,7 +836,7 @@ class PromptAuditDashboard(tb.Window):
         self.lbl_rep_val = tb.Label(gen, text=f"{self.var_rep_pen.get():.2f}")
         self.lbl_rep_val.grid(row=4, column=2, sticky="w", padx=4)
 
-        # Frequency Penalty ---------------------------------------------------
+        # Frequency Penalty
         lbl_freq = tb.Label(gen, text="Frequency Penalty")
         lbl_freq.grid(row=5, column=0, sticky="w", padx=4, pady=4)
         ToolTip(lbl_freq, text="API backend only. Penalizes tokens according to how often they have already appeared.")
@@ -860,7 +851,7 @@ class PromptAuditDashboard(tb.Window):
         self.lbl_freq_val = tb.Label(gen, text=f"{self.var_freq_pen.get():.2f}")
         self.lbl_freq_val.grid(row=5, column=2, sticky="w", padx=4)
 
-        # Presence Penalty ----------------------------------------------------
+        # Presence Penalty
         lbl_pres = tb.Label(gen, text="Presence Penalty")
         lbl_pres.grid(row=6, column=0, sticky="w", padx=4, pady=4)
         ToolTip(lbl_pres, text="API backend only. Penalizes tokens that have already appeared, regardless of their frequency.")
@@ -875,7 +866,7 @@ class PromptAuditDashboard(tb.Window):
         self.lbl_pres_val = tb.Label(gen, text=f"{self.var_pres_pen.get():.2f}")
         self.lbl_pres_val.grid(row=6, column=2, sticky="w", padx=4)
 
-        # Num Beams -----------------------------------------------------------
+        # Num Beams
         lbl_beams = tb.Label(gen, text="Num Beams")
         lbl_beams.grid(row=7, column=0, sticky="w", padx=4, pady=4)
         ToolTip(lbl_beams, text="Beam search width for Hugging Face models. One beam is required for sampled voting; temperature determines whether generation samples tokens or uses greedy decoding.")
@@ -894,7 +885,7 @@ class PromptAuditDashboard(tb.Window):
         self.spin_num_beams.bind("<FocusOut>", self._schedule_persist_prefs)
         self.spin_num_beams.bind("<Return>", self._schedule_persist_prefs)
 
-        # Seed ----------------------------------------------------------------
+        # Seed
         lbl_seed = tb.Label(gen, text="Seed")
         lbl_seed.grid(row=8, column=0, sticky="w", padx=4, pady=4)
         ToolTip(lbl_seed, text="Base seed for the standard workflow. Sampled voting uses a distinct seed per draw. Matching seeds support repeatability but do not guarantee identical results across hardware or runtime versions. Study modes use the run-seed list above.")
@@ -913,16 +904,16 @@ class PromptAuditDashboard(tb.Window):
         self.spin_seed.bind("<FocusOut>", self._schedule_persist_prefs)
         self.spin_seed.bind("<Return>", self._schedule_persist_prefs)
 
-        # Stop Sequences ------------------------------------------------------
+        # Stop Sequences
         lbl_stop = tb.Label(gen, text="Stop Sequences")
         lbl_stop.grid(row=9, column=0, sticky="w", padx=4, pady=4)
-        ToolTip(lbl_stop, text="Comma-separated strings where generation should stop.")
+        ToolTip(lbl_stop, text="Separate stop strings with commas.")
         self.entry_stop = tb.Entry(gen, textvariable=self.var_stop)
         self.entry_stop.grid(row=9, column=1, sticky="ew", padx=4)
         self.entry_stop.bind("<FocusOut>", self._schedule_persist_prefs)
         self.entry_stop.bind("<Return>", self._schedule_persist_prefs)
 
-        # Self-Consistency Samples -------------------------------------------
+        # Self-Consistency Samples
         lbl_sc = tb.Label(gen, text="SC Samples")
         lbl_sc.grid(row=10, column=0, sticky="w", padx=4, pady=4)
         ToolTip(
@@ -948,12 +939,10 @@ class PromptAuditDashboard(tb.Window):
         self.entry_context_window.bind("<FocusOut>", self._schedule_persist_prefs)
         self.entry_context_window.bind("<Return>", self._schedule_persist_prefs)
         context_help = (
-            "Optional positive token window, with room for both input and output. Blank leaves model-specific "
-            "settings or the server default in place. Ollama cross-run reuse requires an explicit effective window "
-            "and a cache profile. Setting this does not shorten the code. "
-            "Choose a window that fits representative and long inputs during a pilot, then keep it fixed across "
-            "matched conditions. Larger windows and more parallel workers require additional GPU memory. "
-            "Check the loaded window with ollama ps; blank does not mean a fixed 4K window."
+            "Shared context window for input and output. Model entries in config.yaml override this field; "
+            "the bundled models have explicit, model-specific windows. Ollama requires a supported explicit "
+            "window. Oversized inputs are recorded as UNKNOWN. "
+            "Larger windows and more workers require additional GPU memory. Check the loaded window with ollama ps."
         )
         ToolTip(lbl_context, text=context_help)
         ToolTip(self.entry_context_window, text=context_help)
@@ -961,7 +950,7 @@ class PromptAuditDashboard(tb.Window):
         # Allow column 1 (the controls) to stretch
         gen.grid_columnconfigure(1, weight=1)
 
-        # --- Run Performance -------------------------------------------------
+        # Run Performance
         perf = tb.Labelframe(left_inner, text="Run Performance", padding=8, bootstyle="success")
         perf.pack(fill="x", pady=(8, 0))
 
@@ -1143,7 +1132,7 @@ class PromptAuditDashboard(tb.Window):
         ToolTip(self.entry_cache_profile, text=profile_help)
         perf.grid_columnconfigure(1, weight=1)
 
-        # RIGHT: Run Monitor ---------------------------------------------------
+        # RIGHT: Run Monitor
         middle_col = tb.Labelframe(root, text="Run Monitor", padding=8, bootstyle="info")
         root.add(middle_col, weight=1)
 
@@ -1352,9 +1341,7 @@ class PromptAuditDashboard(tb.Window):
         self._refresh_resume_checkpoint_ui()
         self._schedule_persist_prefs()
 
-    # -----------------------------------------------------------------
     # Persistence / Presets
-    # -----------------------------------------------------------------
     def _list_presets(self):
         """
         Return a list of available preset filenames, with a sentinel first option.
@@ -1630,9 +1617,7 @@ class PromptAuditDashboard(tb.Window):
         finally:
             self.destroy()
 
-    # -----------------------------------------------------------------
     # Run + Stop logic
-    # -----------------------------------------------------------------
     def _refresh_resume_checkpoint_ui(self):
         """Refresh the saved-checkpoint resume button and label."""
         self.latest_checkpoint_path = self._find_saved_run()
@@ -1795,9 +1780,7 @@ class PromptAuditDashboard(tb.Window):
         except Exception as exc:
             self.msg_queue.put(("error", safe_text(str(exc))))
 
-    # -----------------------------------------------------------------
-    # Runtime / log plumbing
-    # -----------------------------------------------------------------
+    # Run monitor updates
     def _update_runtime(self):
         """
         Periodically update the runtime label while an experiment is running.
@@ -1952,7 +1935,7 @@ class PromptAuditDashboard(tb.Window):
             self._log(f"Report not found at {path}")
 
 
-# Standalone launch -----------------------------------------------------------
+# Standalone launch
 if __name__ == "__main__":
     app = PromptAuditDashboard()
     try:

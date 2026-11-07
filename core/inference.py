@@ -13,7 +13,7 @@ import threading
 import time
 import uuid
 
-from models.base import BaseModel
+from models.base import BaseModel, ContextSafetyError
 from utils.privacy import safe_settings, safe_text
 
 
@@ -151,6 +151,12 @@ class InferenceEngine:
         self.model = model
         self.model_item = copy.deepcopy(model_item)
         self.backend = str(model_item.get("backend", "ollama") if isinstance(model_item, dict) else "ollama").lower()
+        info = safe_settings(model_info if model_info is not None else
+                             model.get_model_info() if hasattr(model, "get_model_info") else {})
+        # An offline server has no identity to save with a resumable run.
+        if self.backend == "ollama" and info.get("metadata_error"):
+            raise InferenceStateError(f"Cannot read Ollama metadata for {model.name}. "
+                                      "Make sure Ollama is running and the model is installed.")
         self.options = performance_options(performance, self.backend)
         self.workers = self.options["inference_workers"]
         self.standard_prefetch_samples = self.workers * STANDARD_PREFETCH_BATCHES if self.workers > 1 else 1
@@ -166,8 +172,6 @@ class InferenceEngine:
         self._clients = []
         self._client_lock = threading.Lock()
         self._executor = ThreadPoolExecutor(max_workers=self.workers) if self.workers > 1 else None
-        info = safe_settings(model_info if model_info is not None else
-                             model.get_model_info() if hasattr(model, "get_model_info") else {})
         self.model_info = copy.deepcopy(info)
         root = Path(__file__).resolve().parents[1]
         sources = [Path(__file__), *sorted((root / "models").glob("*.py")),
@@ -264,6 +268,8 @@ class InferenceEngine:
         try:
             model.gen_cfg = copy.deepcopy(settings)
             raw = str(model.generate(prompt) or "")
+        except ContextSafetyError as exc:
+            raise InferenceStateError(str(exc)) from exc
         except Exception as exc:
             error = safe_text(f"{type(exc).__name__}: {exc}")
             error_type = type(exc).__name__
@@ -275,6 +281,7 @@ class InferenceEngine:
             info.update(status="error")
             info.setdefault("error_type", error_type)
             info.setdefault("error_message", error)
+        info["prompt_sha256"] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         return {"raw_output": raw, "error": error, "generation_info": info,
                 "seconds": time.perf_counter() - started, "cache_status": "generated"}
 

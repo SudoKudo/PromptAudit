@@ -161,7 +161,7 @@ def _write_index(path, manifest, tables):
 body{font:16px system-ui,sans-serif;margin:2rem;line-height:1.5;color:#202a38}a{color:#145eac}details{border:1px solid #ccd4df;padding:1rem;margin:1rem 0}summary{cursor:pointer;font-weight:600}.scroll{overflow:auto;max-height:32rem}table{border-collapse:collapse;font-size:.85rem;white-space:nowrap}th,td{padding:.4rem .7rem;border:1px solid #d7dce3;text-align:left}th{background:#edf2f8;position:sticky;top:0}input{padding:.6rem;width:min(36rem,90%)}dt{font-weight:600}dd{margin-bottom:.6rem}.status{background:#edf2f8;padding:1rem}
 </style></head><body><h1>Paper tables</h1><p class="status">STATUS</p>
 <p>These tables copy the saved Python analysis. CSV files retain full precision. No model calls, cross-model averages, or pooled scores are added by the exporter.</p>
-<p><a href="manifest.json">Definitions, settings, and file hashes</a> | <a href="condition_scores.tex">Configuration table for LaTeX</a> | <a href="../analysis.json">Complete analysis JSON</a> | <a href="../review_cases.csv">Cases for author review</a></p>
+<p><a href="manifest.json">Definitions, settings, and file hashes</a> | <a href="condition_scores.tex">Configuration table for LaTeX</a> | <a href="../analysis.json">Complete analysis JSON</a> | <a href="review_cases.csv">Review candidates</a></p>
 <p>Keep dataset, model identity, run seed, condition, verdict order, and parser separate when selecting values for the paper. Seed summaries, wording spreads, and prevalence draw summaries describe different sources of variation. A mean F1 is not an F1 computed from pooled counts.</p>
 <label for="search">Find a table or preview row</label><br><input id="search" type="search" placeholder="Search dataset, model, metric, or condition">
 SECTIONS
@@ -215,7 +215,7 @@ def write_paper_exports(stage, metrics, analysis, *, control=None):
         ("selective_predictions", "Answered-only accuracy and risk", "One observed risk-coverage point per configuration. No confidence threshold curve is inferred."),
         ("prevalence_summaries", "Prevalence subset summaries", "Means and variation across repeated matched subsets; draw quantiles are not confidence intervals."),
         ("parser_comparisons", "Parser comparisons", "Only samples with verified shared response pools support parser comparisons."),
-        ("output_summaries", "Response-length and parser summaries", "Visible lengths and measured tokens are descriptive; they do not establish reasoning quality or causality."),
+        ("output_summaries", "Response length and parser summaries", "Saved call coverage includes error records. The visible-response mean uses replies with text. Each row counts calls under its own parser and decision rule."),
         ("dataset_summaries", "Dataset composition", "Source samples are deduplicated across prediction configurations; missing metadata remains unavailable."),
         ("dataset_overlap", "Cross-dataset overlap", "Exact code hashes and supplied identifiers only. No near-duplicate detection or row removal."),
         ("cwe_breakdowns", "CWE scores", "Per-configuration scores using available CWE metadata. A sample can belong to multiple CWEs."),

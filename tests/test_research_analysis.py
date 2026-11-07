@@ -191,6 +191,31 @@ class ResearchAnalysisTests(unittest.TestCase):
         self.assertEqual(no_cases["review_cases"], [])
         self.assertGreater(no_cases["review_case_candidates"], 0)
 
+    def test_output_audit_separates_context_errors_and_empty_replies_from_visible_text(self):
+        ids = ["context", "network", "blank", "reply", "missing"]
+        row = {**samples(2)[0], "pred": "unknown", "decision_calls": len(ids),
+               "generation_ids": ids, "decision_generation_ids": ids}
+        calls = {
+            "context": {"raw_output": "", "generation_info": {"status": "error", "error_type": "ContextWindowExceeded"}},
+            "network": {"raw_output": "", "generation_info": {"status": "error", "error_type": "HTTPError"}},
+            "blank": {"raw_output": "   ", "generation_info": {"status": "empty_response"}},
+            "reply": {"raw_output": "SAFE", "generation_info": {"status": "ok"}},
+        }
+        result = run_research_analyses(Reader([(GROUP, {"reference": [row]})], calls),
+            {"prevalence": False, "dataset_audit": False}, bootstrap=0)
+        summary = result["output_summaries"][0]
+        self.assertEqual(summary["generation_error_calls"], 2)
+        self.assertEqual(summary["context_overflow_calls"], 1)
+        self.assertEqual(summary["other_generation_error_calls"], 1)
+        self.assertEqual(summary["empty_response_calls"], 1)
+        self.assertEqual(summary["visible_response_calls"], 1)
+        self.assertEqual(summary["mean_visible_chars_per_visible_response"], 4)
+        self.assertEqual(summary["available_responses"], 4)
+        self.assertEqual(summary["response_measurement_coverage"], 0.8)
+        self.assertEqual(summary["missing_responses"], 1)
+        self.assertEqual(set(result["review_cases"][0]["reasons"]),
+                         {"unresolved_verdict", "generation_error", "context_overflow", "empty_response"})
+
     def test_dataset_audit_counts_exact_overlap_and_conflicts_without_mutation(self):
         original = [("a", [{"id": 1, "code": "same code", "label": "SAFE", "cve_id": "CVE-1",
                            "project": "shared", "cwe_id": "CWE-119"},

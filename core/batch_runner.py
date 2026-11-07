@@ -205,7 +205,7 @@ class BatchRunner:
                 if not samples:
                     raise ValueError(f"Dataset {name} has no samples")
                 inventory.setdefault("loaded_samples", len(samples))
-                inventory.setdefault("selected_samples", len(samples))
+                inventory["selected_samples"] = len(samples)
                 inventory.setdefault("source_exclusions", inventory.get("excluded_code_files"))
                 cohort = {"name": name, "samples": len(samples), "fingerprint": _fingerprint(samples),
                           "inventory": inventory}

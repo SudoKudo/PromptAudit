@@ -5,7 +5,7 @@ import hashlib
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from .base import BaseModel, merge_generation_settings
+from .base import BaseModel, ContextSafetyError, ContextWindowExceeded, merge_generation_settings
 
 
 class HFModel(BaseModel):
@@ -78,6 +78,8 @@ class HFModel(BaseModel):
                   getattr(self.tokenizer, "model_max_length", None)]
         limits = [int(value) for value in limits if value is not None and 0 < int(value) < 10**9]
         context_window = min(limits) if limits else None
+        if context_window is None:
+            raise ContextSafetyError("Cannot establish the checkpoint's context window; set an explicit supported window")
         stop_sequences = self.gen_cfg.get("stop_sequences", [])
         info = {
             "backend": "hf", "model": self.name, "status": "pending",
@@ -89,7 +91,7 @@ class HFModel(BaseModel):
         }
         self._set_generation_info(info)
         if context_window is not None and prompt_len + max_new_tokens > context_window:
-            raise ValueError(f"Input ({prompt_len} tokens) plus output budget ({max_new_tokens}) "
+            raise ContextWindowExceeded(f"Input ({prompt_len} tokens) plus output budget ({max_new_tokens}) "
                              f"exceeds context window ({context_window}); input was not truncated")
 
         temperature = self.gen_cfg.get("temperature", 0.2)

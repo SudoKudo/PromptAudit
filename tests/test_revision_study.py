@@ -21,7 +21,7 @@ from evaluation.label_parser import parse_verdict_details
 from evaluation.metrics import Metrics, refresh_record_accuracy
 from evaluation.template_analysis import analyze_study, paired_comparison
 from evaluation.voting import aggregate_votes
-from models.base import BaseModel, merge_generation_settings
+from models.base import BaseModel, ContextWindowExceeded, merge_generation_settings
 from models import model_loader as model_loading
 from models.ollama_model import OllamaModel
 from prompts.adaptive_cot import AdaptiveCoT
@@ -743,7 +743,7 @@ class BackendTests(unittest.TestCase):
 
     def test_hf_context_overflow_is_reported_without_truncation(self):
         model = self.hf_backend(context_window=10)
-        with self.assertRaisesRegex(ValueError, "input was not truncated"):
+        with self.assertRaisesRegex(ContextWindowExceeded, "input was not truncated"):
             model.generate("too long with its output budget")
         self.weights.generate.assert_not_called()
         info = model.consume_generation_info()
@@ -790,10 +790,13 @@ class BackendTests(unittest.TestCase):
 
     def test_ollama_forwards_context_and_preserves_separate_thinking(self):
         model = OllamaModel("fixture", {"context_window": 2048, "think": False})
+        model.context_guard.ensure_verified = Mock()  # Input guards have separate behavioral tests.
+        model.context_guard.loaded_window = Mock(return_value=2048)
         model.session = Mock()
         response = model.session.post.return_value
         response.status_code = 200
-        response.json.return_value = {"response": "SAFE", "thinking": "separate reasoning", "done_reason": "length"}
+        response.json.return_value = {"response": "SAFE", "thinking": "separate reasoning", "done": True,
+                                      "done_reason": "length", "prompt_eval_count": 100}
         self.assertEqual(model.generate("task and code"), "SAFE")
         payload = model.session.post.call_args.kwargs["json"]
         self.assertEqual(payload["options"]["num_ctx"], 2048)

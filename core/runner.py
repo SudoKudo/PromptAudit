@@ -245,7 +245,8 @@ class ExperimentRunner:
             f"code_chars={event.get('code_chars')}",
             f"prompt_chars={event.get('prompt_chars')}",
         ]
-        for key in ("status", "http_status", "done_reason", "prompt_eval_count", "eval_count", "error_type"):
+        for key in ("status", "http_status", "done_reason", "prompt_eval_count", "eval_count",
+                    "input_tokens_required", "reported_context_window", "error_type"):
             value = generation_info.get(key)
             if value not in (None, "", []):
                 details.append(f"{key}={value}")
@@ -319,15 +320,26 @@ class ExperimentRunner:
         if not self.records_jsonl_path or not os.path.exists(self.records_jsonl_path):
             return []
         loaded = []
-        with open(self.records_jsonl_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
+        with open(self.records_jsonl_path, "rb+") as f:
+            while True:
+                offset = f.tell()
+                line = f.readline()
                 if not line:
+                    break
+                if not line.strip():
                     continue
                 try:
-                    loaded.append(refresh_record_accuracy(safe_settings(json.loads(line))))
-                except Exception:
-                    continue
+                    record = json.loads(line)
+                except (ValueError, UnicodeDecodeError) as exc:
+                    if line.endswith(b"\n"):
+                        raise ValueError("A saved Standard record is damaged") from exc
+                    # An interrupted final append can be regenerated on resume.
+                    f.truncate(offset)
+                    break
+                loaded.append(refresh_record_accuracy(safe_settings(record)))
+                if not line.endswith(b"\n"):
+                    f.write(b"\n")
+                    break
         return loaded
 
     def _get_model(self, model_item, gen_cfg):
@@ -365,7 +377,7 @@ class ExperimentRunner:
 
     def _close_models(self):
         for model in self.model_cache.values():
-            summary = model.engine.summary()
+            summary = {"model": model.name, **model.engine.summary()}
             self.inference_summaries.append(summary)
             try:
                 self.progress(f"[INFERENCE] {model.name}: {summary}")
@@ -635,11 +647,14 @@ class ExperimentRunner:
             "dataset_inventory": self.dataset_inventory,
             "analysis": self.cfg.get("analysis", {}),
             "inference_performance": self.inference_summaries
-                + [model.engine.summary() for model in self.model_cache.values()],
+                + [{"model": model.name, **model.engine.summary()} for model in self.model_cache.values()],
         }
         os.makedirs(os.path.dirname(self.checkpoint_path), exist_ok=True)
-        with open(self.checkpoint_path, "w", encoding="utf-8") as f:
+        checkpoint = Path(self.checkpoint_path)
+        temporary = checkpoint.with_suffix(".json.tmp")
+        with temporary.open("w", encoding="utf-8") as f:
             json.dump(safe_settings(state), f, ensure_ascii=False, indent=2)
+        temporary.replace(checkpoint)
 
     def _mark_checkpoint_saved(self, next_sample_index=0):
         """Track the last point at which combo progress was checkpointed."""
@@ -1220,6 +1235,11 @@ class ExperimentRunner:
                 anomaly_logged = True
 
             if not pred and not anomaly_logged:
+                reason = "empty_response"
+                if generation_info.get("error_type") == "ContextWindowExceeded":
+                    reason = "context_overflow"
+                elif generation_info.get("status") == "error":
+                    reason = "generation_error"
                 event = self._record_generation_anomaly(
                     generation_anomalies,
                     sample_index=idx,
@@ -1233,10 +1253,10 @@ class ExperimentRunner:
                     gold=gold,
                     code=code,
                     prompt_text=prompt_text,
-                    reason="empty_response",
+                    reason=reason,
                     generation_info=generation_info,
                 )
-                self.progress(f"Empty response for sample {idx + 1}, will treat as UNKNOWN verdict")
+                self.progress(f"Sample {idx + 1} recorded as UNKNOWN ({reason})")
                 self._log_generation_anomaly(event)
 
             if diagnostics is None:
