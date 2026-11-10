@@ -11,8 +11,9 @@ from unittest.mock import patch
 
 from core.batch_runner import BatchRunner
 from core.inference import InferenceStateError
-from core.revision_study import StudyRunner, build_conditions, run_study
+from core.revision_study import StudyRunner, build_conditions, run_study, text_hash
 from models.base import BaseModel
+from utils.run_files import _CHECKPOINT_PATCH
 
 
 BATCH_SAMPLES = [
@@ -144,6 +145,66 @@ class BatchRunnerTests(unittest.TestCase):
         self.assertEqual([row["pred"] for row in predictions], ["unknown", "safe", "safe"])
         self.assertGreaterEqual(self.events[0]["percent"], before)
         self.assertEqual(self.events[-1]["percent"], 100)
+
+    def test_windows_checkpoint_replace_retries_without_repeating_generation(self):
+        job = self.standard()
+        job.update(prompts=["zero_shot"], protocols=["verdict_first"], parsers=["strict", "full"])
+        actual_replace = Path.replace
+        blocked = []
+
+        def replace_once(source, destination):
+            if Path(destination).name == "checkpoint.json" and self.calls and not blocked:
+                blocked.append(source)
+                error = PermissionError("checkpoint is busy")
+                error.winerror = 5
+                raise error
+            return actual_replace(source, destination)
+
+        runner = self.runner()
+        with patch.object(Path, "replace", replace_once), patch("utils.run_files.sleep") as wait:
+            self.assertEqual(runner.run_batch([job]), "completed")
+        wait.assert_called_once_with(0.05)
+        self.assertEqual(len(self.calls), 1)
+        self.assertFalse(blocked[0].exists())
+
+    def test_checkpoint_patch_resumes_the_original_batch_and_study_sources(self):
+        job = self.study("B")
+        job["config"].update(families=["adaptive_cot", "self_consistency"], variants=["reference"],
+                             protocols=["verdict_first"], parser_modes=["strict"])
+        current_sources = BatchRunner._sources()
+        previous_sources = {
+            name: _CHECKPOINT_PATCH.get(name.replace("\\", "/"), (digest,))[0]
+            for name, digest in current_sources.items()
+        }
+        old_hash, new_hash = _CHECKPOINT_PATCH["core/revision_study.py"]
+
+        def original_study_hash(value):
+            result = text_hash(value)
+            return old_hash if result == new_hash else result
+
+        runner = self.runner()
+        self.after_call = runner.request_stop
+        with (patch.object(BatchRunner, "_sources", return_value=previous_sources),
+              patch("core.revision_study.text_hash", side_effect=original_study_hash)):
+            self.assertEqual(runner.run_batch([job]), "stopped")
+        self.after_call = None
+        self.assertEqual(len(self.calls), 1)
+        path = Path(runner.output_dir) / "batch_manifest.json"
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        study_path = Path(saved["jobs"][0]["checkpoint"])
+        before = json.loads(study_path.read_text(encoding="utf-8"))
+        with patch.object(BatchRunner, "_sources", return_value={**current_sources, "config.yaml": "changed"}):
+            with self.assertRaisesRegex(InferenceStateError, "Batch sources changed"):
+                self.runner().run_batch([], resume_manifest=path)
+        self.assertEqual(self.runner().run_batch([], resume_manifest=path), "completed")
+        self.assertEqual(len(self.calls), 5)
+        batch = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(batch["sources"], previous_sources)
+        self.assertEqual(batch["resume_sources"], current_sources)
+        after = json.loads(study_path.read_text(encoding="utf-8"))
+        self.assertEqual(after["fingerprint"], before["fingerprint"])
+        self.assertEqual(after["source_hashes"], before["source_hashes"])
+        self.assertEqual(after["new_calls_this_session"], 4)
 
     def test_deferred_analysis_resumes_without_loading_models(self):
         job = self.study("B")

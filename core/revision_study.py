@@ -21,6 +21,7 @@ from models.model_loader import load_model
 from models.base import merge_generation_settings
 from utils.privacy import safe_settings as _safe_settings
 from utils.power import SleepInhibitor
+from utils.run_files import replace_with_retry, resume_sources_match
 from core.inference import InferenceEngine, InferenceStateError, generation_diagnostics, performance_options
 from prompts.template_variants import (
     CODE_SLOT, COMPONENTS, FAMILIES, VARIANTS, render_component_template,
@@ -38,7 +39,7 @@ def json_hash(value):
 def _write_json(path, value):
     temp = path.with_suffix(path.suffix + ".tmp")
     temp.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    temp.replace(path)
+    replace_with_retry(temp, path)
 
 
 def _append_json(path, value):
@@ -308,6 +309,12 @@ def run_study(cfg, output=None, *, pilot=False, limit=None, resume=False,
     manifest_path = output / "manifest.json"
     if resume:
         old = json.loads(manifest_path.read_text(encoding="utf-8"))
+        saved_sources = old.get("source_hashes", {})
+        if saved_sources != source_hashes and resume_sources_match(saved_sources, source_hashes):
+            # Keep the run's original fingerprint and record the checkpoint patch separately.
+            manifest["source_hashes"] = saved_sources
+            fingerprint = json_hash(manifest)
+            manifest["resume_source_hashes"] = source_hashes
         if old["fingerprint"] != fingerprint:
             raise ValueError("Resume refused: configuration, sources, or cohort changed")
         manifest["created_at"] = old["created_at"]
@@ -444,7 +451,7 @@ def run_study(cfg, output=None, *, pilot=False, limit=None, resume=False,
                 engine = None
                 # Release local HF weights before loading the next model.
                 del model
-        pending_predictions.replace(prediction_path)
+        replace_with_retry(pending_predictions, prediction_path)
         manifest["status"] = "completed"
     except BaseException:
         preserve_completed_manifest = resume and old["status"] == "completed" and new_calls == 0
@@ -458,7 +465,7 @@ def run_study(cfg, output=None, *, pilot=False, limit=None, resume=False,
             condition.pop("_pool", None)
         if pending_predictions.exists():
             if not prediction_path.exists():
-                pending_predictions.replace(prediction_path)
+                replace_with_retry(pending_predictions, prediction_path)
             else:
                 pending_predictions.unlink()
         if preserve_completed_manifest:

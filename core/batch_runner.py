@@ -24,6 +24,7 @@ from prompts.prompt_loader import load_prompt_strategy
 from prompts.template_variants import CODE_SLOT
 from evaluation.output_protocol import build_output_instruction
 from utils.privacy import safe_settings, safe_text
+from utils.run_files import replace_with_retry, resume_sources_match
 
 
 PREDICTION_WEIGHT = 0.05
@@ -37,7 +38,7 @@ class BatchStopped(Exception):
 def _write_json(path, value):
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(safe_settings(value), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    temporary.replace(path)
+    replace_with_retry(temporary, path)
 
 
 def _fingerprint(samples):
@@ -310,7 +311,7 @@ class BatchRunner:
         path = Path(self.report_html_path)
         temporary = path.with_suffix(".html.tmp")
         temporary.write_text(document, encoding="utf-8")
-        temporary.replace(path)
+        replace_with_retry(temporary, path)
 
     def _loader_for(self, entry):
         by_name = {cohort["name"]: cohort for cohort in entry["cohorts"]}
@@ -413,8 +414,13 @@ class BatchRunner:
                     raise InferenceStateError("Unsupported batch format")
                 analysis_only = all(entry["status"] in {"completed", "generated"}
                                     for entry in self._manifest["jobs"])
-                if not analysis_only and self._manifest["sources"] != self._sources():
-                    raise InferenceStateError("Batch sources changed; start a new batch")
+                if not analysis_only:
+                    saved_sources = self._manifest["sources"]
+                    current_sources = self._sources()
+                    if not resume_sources_match(saved_sources, current_sources):
+                        raise InferenceStateError("Batch sources changed; start a new batch")
+                    if saved_sources != current_sources:
+                        self._manifest["resume_sources"] = current_sources
                 current_api = self.cfg.get("api", {})
                 self.cfg = copy.deepcopy(self._manifest["config"])
                 for key in ("api_key", "token", "access_token"):

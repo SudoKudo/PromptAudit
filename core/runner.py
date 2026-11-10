@@ -27,6 +27,7 @@ from core.inference import (
     generation_diagnostics, performance_options,
 )
 from utils.privacy import safe_settings, safe_text
+from utils.run_files import replace_with_retry
 
 
 def _model_name(model_item):
@@ -654,7 +655,7 @@ class ExperimentRunner:
         temporary = checkpoint.with_suffix(".json.tmp")
         with temporary.open("w", encoding="utf-8") as f:
             json.dump(safe_settings(state), f, ensure_ascii=False, indent=2)
-        temporary.replace(checkpoint)
+        replace_with_retry(temporary, checkpoint)
 
     def _mark_checkpoint_saved(self, next_sample_index=0):
         """Track the last point at which combo progress was checkpointed."""
