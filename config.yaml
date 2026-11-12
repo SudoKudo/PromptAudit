@@ -103,6 +103,10 @@ models:
     backend: ollama
     context_window: 16384
 
+  - name: qwen3-coder:30b
+    backend: ollama
+    context_window: 32768
+
 prompts:
   - zero_shot         # Single-pass classification, no examples
   - few_shot          # Uses small labeled examples in the prompt

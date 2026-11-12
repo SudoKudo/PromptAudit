@@ -44,6 +44,8 @@ python run_PromptAudit.py
 
 For a quick run, choose **Standard prompts**, `mistral:latest`, `toy`, and `zero_shot`. Select `verdict_first` and the `strict` parser, then click **Run Selected Experiments**.
 
+To use Qwen3-Coder, run `ollama pull qwen3-coder:30b` and reopen the dashboard.
+
 | Experiment type | What it compares |
 | --- | --- |
 | Standard prompts | Prompting approaches under the selected verdict orders and parsers |
